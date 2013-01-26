@@ -8,7 +8,7 @@ public class JoystickButton {
     int button;
     boolean flag = true;
     
-    public JoystickButton( int JoystickNum, int Button)
+    public JoystickButton(int JoystickNum, int Button)
     {
         joy = new Joystick(JoystickNum);
         button = Button;
