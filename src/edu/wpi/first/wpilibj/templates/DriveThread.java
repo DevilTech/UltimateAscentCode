@@ -12,18 +12,22 @@ public class DriveThread implements Runnable
     Joystick stick;
     
     
-    public DriveThread(RobotTemplate main, RobotDrive drive, Joystick wheel, Joystick stick){
+    public DriveThread(RobotTemplate main, RobotDrive drive, Joystick wheel, Joystick stick)
+    {
         this.main = main;
         this.drive = drive;
         this.stick = stick;
         this.wheel = wheel;
     }
 
-    public void run() {
-        JoystickButton leftTick = new JoystickButton(wheel, VariableBackend.L1_BUTTON);
-        JoystickButton rightTick = new JoystickButton(wheel, VariableBackend.R1_BUTTON);
+    public void run()
+    {
+        JoystickButton leftTick = new JoystickButton(wheel, Wiring.L1_BUTTON);
+        JoystickButton rightTick = new JoystickButton(wheel, Wiring.R1_BUTTON);
         
-        while(main.isOperatorControl()){
+        while(main.isOperatorControl())
+        {
+            //rotating small distances left or right for accurate aiming
             if(leftTick.debouncedValue())
             {
                 drive.arcadeDrive(-0.5, 0.0);
@@ -38,8 +42,9 @@ public class DriveThread implements Runnable
             }
             else
             {
-            drive.arcadeDrive(wheel.getX(), stick.getY());  
+                drive.arcadeDrive(wheel.getX(), stick.getY());  
             }
+            
         }
     }
     

@@ -5,20 +5,20 @@ import edu.wpi.first.wpilibj.Victor;
 
 public class Shooter 
 {
-    Victor shooter;
+    Victor shoot;
     
     public Shooter(int port)
     {
-        shooter = new Victor(port);
+        shoot = new Victor(port);
     }
     
     public void shoot()
     {
-        shooter.set(1);
+        shoot.set(1);
     }
     
     public void stop()
     {
-        shooter.set(0);
+        shoot.set(0);
     }
 }

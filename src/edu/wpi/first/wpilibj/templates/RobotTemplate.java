@@ -25,36 +25,39 @@ public class RobotTemplate extends SimpleRobot
     int time;
 
     
-    public void robotInit() {
-        leftMotor = new Victor(2);
-        rightMotor = new Victor(4);
-        wheel = new Joystick(2);
-        stick = new Joystick(1);
+    public void robotInit()
+    {
+        leftMotor = new Victor(Wiring.LEFT_WHEEL);
+        rightMotor = new Victor(Wiring.RIGHT_WHEEL);
+        wheel = new Joystick(Wiring.WHEEL);
+        stick = new Joystick(Wiring.THROTTLE);
         rd = new RobotDrive(leftMotor, rightMotor);
         dthread = new DriveThread(this, rd, wheel, stick);
-        shootOn = new JoystickButton(stick, 2);
-        shootOff = new JoystickButton(stick, 3);
-        shooter = new Shooter(8);
-        hopper = new Hopper(7);
-        autonomousA = new DigitalInput(4);
-        autonomousB = new DigitalInput(5);
+        shootOn = new JoystickButton(stick, Wiring.L3_BUTTON);
+        shootOff = new JoystickButton(stick, Wiring.R3_BUTTON);
+        shooter = new Shooter(Wiring.SHOOTER_MOTOR);
+        hopper = new Hopper(Wiring.HOPPER_SERVO);
+        autonomousA = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_A);
+        autonomousB = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_B);
     }
     
     public void autonomous()
-{
-	/*if(autonomousSwitch.get() == 0)
+    {
+        //left for 2s, mid for 6s, right for 11s
+	if(autonomousA.get() && !autonomousB.get())
 	{
 		time = 2;
 	}
-	if(autonomousSwitch.get() == 1)
+	if(autonomousA.get() && autonomousB.get())
 	{
 		time = 6;
 	}
-	if(autonomousSwitch.get())
+	if(!autonomousA.get() && autonomousB.get())
 	{
 		time = 11;
-	}*/
+	}
 
+        //shoot 3 with 1s delay in between
 	while(isAutonomous())
 	{
 		shooter.shoot();
@@ -70,32 +73,32 @@ public class RobotTemplate extends SimpleRobot
 
     public void operatorControl()
     {
+        
         (new Thread(dthread)).start();
         shooting = false;
         while(isOperatorControl())
         {
+            //logic for toggling
             if(shootOn.debouncedValue())
             {
-                System.out.println("Shooting set to true");
                 shooting = true;
             }
             else if(shootOff.debouncedValue())
             {
-                System.out.println("Shooting set to false");
                 shooting = false;
             }
             
+            //shoot if not already pressed down
             if(shooting)
             {
-                System.out.println("Shooting");
                 shooter.shoot();
             }
             else
             {
-                System.out.println("Not Shooting");
                 shooter.stop();
             }
             
+            //semi automatic shooting system
             if(stick.getRawButton(1) && shooting)
             {
                 hopper.load();

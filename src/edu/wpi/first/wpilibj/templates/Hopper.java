@@ -15,6 +15,7 @@ public class Hopper
     
     public void load()
     {
+        //turn the servo 90 degrees and then back (load a frisbee)
         hopper.setAngle(90);
         Timer.delay(.3);
         hopper.setAngle(0);

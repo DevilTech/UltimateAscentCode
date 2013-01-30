@@ -22,6 +22,7 @@ public class JoystickButton {
     
     public boolean debouncedValue()
     {
+        //toggle logic: check to see if it's already pressed
         if(joy.getRawButton(button))
         {
             if(flag)
