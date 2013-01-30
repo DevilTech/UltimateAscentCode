@@ -17,10 +17,13 @@ public class RobotTemplate extends SimpleRobot
     JoystickButton shootOn;
     JoystickButton shootOff;
     JoystickButton h90;
-    Victor shooter;
+    Shooter shooter;
     boolean shooting;
-    boolean automatic;
-    Servo hopper;
+    Hopper hopper;
+    DigitalInput autonomousA;
+    DigitalInput autonomousB;
+    int time;
+
     
     public void robotInit() {
         leftMotor = new Victor(2);
@@ -31,23 +34,44 @@ public class RobotTemplate extends SimpleRobot
         dthread = new DriveThread(this, rd, wheel, stick);
         shootOn = new JoystickButton(stick, 2);
         shootOff = new JoystickButton(stick, 3);
-        shooter = new Victor(8);
-        hopper = new Servo(7);
+        shooter = new Shooter(8);
+        hopper = new Hopper(7);
+        autonomousA = new DigitalInput(4);
+        autonomousB = new DigitalInput(5);
     }
     
     public void autonomous()
-    {
-        while(isAutonomous())
-        {
-            
-        }
-    }
+{
+	/*if(autonomousSwitch.get() == 0)
+	{
+		time = 2;
+	}
+	if(autonomousSwitch.get() == 1)
+	{
+		time = 6;
+	}
+	if(autonomousSwitch.get())
+	{
+		time = 11;
+	}*/
+
+	while(isAutonomous())
+	{
+		shooter.shoot();
+		Timer.delay(time);
+		hopper.load();
+                Timer.delay(1);
+                hopper.load();
+                Timer.delay(1);
+                hopper.load();
+	}
+}
+
 
     public void operatorControl()
     {
         (new Thread(dthread)).start();
         shooting = false;
-        automatic = true;
         while(isOperatorControl())
         {
             if(shootOn.debouncedValue())
@@ -64,23 +88,17 @@ public class RobotTemplate extends SimpleRobot
             if(shooting)
             {
                 System.out.println("Shooting");
-                shooter.set(1);
+                shooter.shoot();
             }
             else
             {
                 System.out.println("Not Shooting");
-                shooter.set(0);
+                shooter.stop();
             }
             
-            if(stick.getRawButton(1) && shooting && automatic)
+            if(stick.getRawButton(1) && shooting)
             {
-                System.out.println("Servo set to 90");
-                hopper.setAngle(90);
-                automatic = false;
-                Timer.delay(.3);
-                hopper.setAngle(0);
-                Timer.delay(.5);
-                automatic = true;
+                hopper.load();
             }    
             
         }
@@ -90,4 +108,12 @@ public class RobotTemplate extends SimpleRobot
     {
     
     }
+    
+    public void disabled()
+    {
+	leftMotor.set(0);
+        rightMotor.set(0);
+        shooter.stop();
+    }
+
 }
