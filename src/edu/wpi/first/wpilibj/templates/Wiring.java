@@ -3,18 +3,20 @@ package edu.wpi.first.wpilibj.templates;
 public class Wiring
 {
     //wheel buttons
-    static public final int X_BUTTON = 1;
-    static public final int SQUARE_BUTTON = 2;
-    static public final int CIRCLE_BUTTON = 3;
-    static public final int TRIANGLE_BUTTON = 4;
-    static public final int R1_BUTTON = 5;
-    static public final int L1_BUTTON = 6;
-    static public final int R2_BUTTON = 7;
-    static public final int L2_BUTTON = 8;
-    static public final int SELECT_BUTTON = 9;
-    static public final int START_BUTTON = 10;
-    static public final int R3_BUTTON = 11;
-    static public final int L3_BUTTON = 12;
+    static public final int X_BUTTON = 1; //x
+    static public final int SQUARE_BUTTON = 2;//square
+    static public final int CIRCLE_BUTTON = 3;//circle
+    static public final int TRIANGLE_BUTTON = 4;//triangle
+    static public final int RIGHT_TICK = 5;//r1
+    static public final int LEFT_TICK = 6;//l1
+    static public final int R2_BUTTON = 7;//r2
+    static public final int L2_BUTTON = 8;//l2
+    static public final int SELECT_BUTTON = 9;//select
+    static public final int START_BUTTON = 10;//start
+    static public final int SHOOTER_OFF = 11;//r3
+    static public final int SHOOTER_ON = 12;//l3
+    //Joystick
+    static public final int TRIGGER = 1;
     //Motors
     static public final int LEFT_WHEEL = 2;
     static public final int RIGHT_WHEEL = 4;
@@ -26,5 +28,7 @@ public class Wiring
     //Joysticks
     static public final int WHEEL = 2;
     static public final int THROTTLE = 1;
+    //timer delay for turning
+    static public final double TURN_DELAY = 1.0/16.0;
 }
 

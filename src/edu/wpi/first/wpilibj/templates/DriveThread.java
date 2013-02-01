@@ -22,8 +22,8 @@ public class DriveThread implements Runnable
 
     public void run()
     {
-        JoystickButton leftTick = new JoystickButton(wheel, Wiring.L1_BUTTON);
-        JoystickButton rightTick = new JoystickButton(wheel, Wiring.R1_BUTTON);
+        JoystickButton leftTick = new JoystickButton(wheel, Wiring.LEFT_TICK);
+        JoystickButton rightTick = new JoystickButton(wheel, Wiring.RIGHT_TICK);
         
         while(main.isOperatorControl())
         {
@@ -31,13 +31,13 @@ public class DriveThread implements Runnable
             if(leftTick.debouncedValue())
             {
                 drive.arcadeDrive(-0.5, 0.0);
-                Timer.delay(1.0/16);
+                Timer.delay(Wiring.TURN_DELAY);
                 drive.arcadeDrive(0.0, 0.0);
             }
             else if(rightTick.debouncedValue())
             {
                 drive.arcadeDrive(0.5, 0.0);
-                Timer.delay(1.0/16);
+                Timer.delay(Wiring.TURN_DELAY);
                 drive.arcadeDrive(0.0, 0.0);
             }
             else

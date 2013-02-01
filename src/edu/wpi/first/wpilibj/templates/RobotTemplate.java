@@ -33,8 +33,8 @@ public class RobotTemplate extends SimpleRobot
         stick = new Joystick(Wiring.THROTTLE);
         rd = new RobotDrive(leftMotor, rightMotor);
         dthread = new DriveThread(this, rd, wheel, stick);
-        shootOn = new JoystickButton(stick, Wiring.L3_BUTTON);
-        shootOff = new JoystickButton(stick, Wiring.R3_BUTTON);
+        shootOn = new JoystickButton(stick, Wiring.SHOOTER_ON);
+        shootOff = new JoystickButton(stick, Wiring.SHOOTER_OFF);
         shooter = new Shooter(Wiring.SHOOTER_MOTOR);
         hopper = new Hopper(Wiring.HOPPER_SERVO);
         autonomousA = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_A);
@@ -99,7 +99,7 @@ public class RobotTemplate extends SimpleRobot
             }
             
             //semi automatic shooting system
-            if(stick.getRawButton(1) && shooting)
+            if(stick.getRawButton(Wiring.TRIGGER) && shooting)
             {
                 hopper.load();
             }    
