@@ -1,24 +1,61 @@
 package edu.wpi.first.wpilibj.templates;
 
+import edu.wpi.first.wpilibj.CANJaguar;
 import edu.wpi.first.wpilibj.Victor;
+import edu.wpi.first.wpilibj.can.CANTimeoutException;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 
 public class Shooter 
 {
-    Victor shoot;
+    CANJaguar shoot;
     
     public Shooter(int port)
     {
-        shoot = new Victor(port);
+        try 
+        {
+            shoot = new CANJaguar(port);
+        }
+        catch (CANTimeoutException ex) 
+        {
+            ex.printStackTrace();
+        }
     }
     
     public void shoot()
     {
-        shoot.set(1);
+        /*try 
+        {
+            shoot.setX(SmartDashboard.getNumber("Shooter Motor Speed"));
+        }
+        catch (CANTimeoutException ex)
+        {
+            ex.printStackTrace();
+        }*/
+        
+        try 
+        {
+            shoot.setX(SmartDashboard.getNumber("Shooter Motor Speed"));
+        }
+        catch (CANTimeoutException ex)
+        {
+            Object s = null;
+            ex.printStackTrace();
+            if (s == "cool")
+                s = "cool";
+                
+        }
     }
     
     public void stop()
     {
-        shoot.set(0);
+        try 
+        {
+            shoot.setX(0);
+        }
+        catch (CANTimeoutException ex) 
+        {
+            ex.printStackTrace();
+        }
     }
 }

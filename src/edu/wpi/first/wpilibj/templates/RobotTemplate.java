@@ -3,6 +3,8 @@ package edu.wpi.first.wpilibj.templates;
 import com.sun.squawk.platform.windows.natives.Time;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.can.CANTimeoutException;
+import edu.wpi.first.wpilibj.livewindow.LiveWindow;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 
 
@@ -12,18 +14,23 @@ public class RobotTemplate extends SimpleRobot
     DriveThread dthread;
     CANJaguar leftMotor;
     CANJaguar rightMotor;
-    RobotDrive rd;
+    RobotDrive drive;
     Joystick stick;
     Joystick wheel;
     JoystickButton shootOn;
     JoystickButton shootOff;
+    JoystickButton move;
     JoystickButton h90;
     Shooter shooter;
-    boolean shooting;
     Hopper hopper;
     DigitalInput autonomousA;
     DigitalInput autonomousB;
+    PIDController pid;
+    Gyro gyro;
     int time;
+    Output out;
+    boolean frisbeesHaveBeenShot = false;
+    
     
 
     
@@ -32,21 +39,34 @@ public class RobotTemplate extends SimpleRobot
         try 
         {
             leftMotor = new CANJaguar(Wiring.LEFT_WHEEL);
-            rightMotor = new CANJaguar(Wiring.RIGHT_WHEEL);
+            rightMotor = new CANJaguar(Wiring.RIGHT_WHEEL);// JAG CHANGE
             wheel = new Joystick(Wiring.WHEEL);
             stick = new Joystick(Wiring.THROTTLE);
-            rd = new RobotDrive(leftMotor, rightMotor);
-            dthread = new DriveThread(this, rd, wheel, stick);
-            shootOn = new JoystickButton(stick, Wiring.SHOOTER_ON);
-            shootOff = new JoystickButton(stick, Wiring.SHOOTER_OFF);
+            drive = new RobotDrive(leftMotor, rightMotor);
+            dthread = new DriveThread(this, drive, wheel, stick);// JAG CHANGE
+            shootOn = new JoystickButton(stick, Wiring.A_BUTTON);
+            shootOff = new JoystickButton(stick, Wiring.B_BUTTON);
+            move = new JoystickButton(stick, 6);
             shooter = new Shooter(Wiring.SHOOTER_MOTOR);
             hopper = new Hopper(Wiring.HOPPER_SERVO);
             autonomousA = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_A);
             autonomousB = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_B);
+            gyro = new Gyro(Wiring.GYRO_ANALOG);
+            out = new Output();
+            pid = new PIDController(Wiring.P, Wiring.I, Wiring.D, gyro, out);
+            pid.startLiveWindowMode();
+            pid.setAbsoluteTolerance(1);
+            SmartDashboard.putNumber("Lower Servo Angle", 0.0);
+            SmartDashboard.putNumber("Higher Servo Angle", 0.0);
+            SmartDashboard.putNumber("Shooter Motor Speed", 0.0);
+            SmartDashboard.putNumber("P", 0.0);
+            SmartDashboard.putNumber("I", 0.0);
+            SmartDashboard.putNumber("D", 0.0);
+           
         } 
         catch (CANTimeoutException ex) 
         {
-            ex.printStackTrace();
+            ex.printStackTrace();  //JAG CHANGE
         }
     }
     
@@ -58,9 +78,9 @@ public class RobotTemplate extends SimpleRobot
             jag.disableControl();
             jag.changeControlMode(CANJaguar.ControlMode.kPosition);
             jag.setPositionReference(CANJaguar.PositionReference.kQuadEncoder);
-            jag.setPID(0.0, 0.0, 0.0);
-            jag.configEncoderCodesPerRev((Wiring.TICKSPERREV * Wiring.WHEELSPROCKET) / Wiring.DRIVESPROCKET);
-            jag.configMaxOutputVoltage(Wiring.MAXJAGVOLTAGE);
+            jag.setPID(1000, 0.01, 20);
+            jag.configEncoderCodesPerRev(360/*((Wiring.TICKSPERREV * Wiring.WHEELSPROCKET) / Wiring.DRIVESPROCKET)/19*/);
+            //jag.configMaxOutputVoltage(Wiring.MAXJAGVOLTAGE);
             //jag.setVoltageRampRate(50);
             jag.enableControl();
         }
@@ -69,7 +89,88 @@ public class RobotTemplate extends SimpleRobot
             System.out.println(ex.toString());
         }
     }   //  cfgPosMode
+    
+    public void goForwardNormal (double inches)
+    {
+        try {
+            double ticks = 0;
+            cfgNormalMode(leftMotor);
+            cfgNormalMode(rightMotor);
+            ticks = leftMotor.getPosition() + 2.0;
+            System.out.println("Starting Position: " + leftMotor.getPosition());
+            while(leftMotor.getPosition() < ticks && isEnabled())
+            {
+                drive.arcadeDrive(0.5, 0.0);
+                System.out.println(leftMotor.getPosition());
+            }
+        } catch (CANTimeoutException ex) {
+            ex.printStackTrace();
+        }
+        drive.arcadeDrive(0.0,0.0);
+        
+    }
 
+    public void goForward(double inches)
+    {
+        try {
+
+            cfgPosMode(leftMotor);
+            cfgPosMode(rightMotor);
+            leftMotor.setX(-10);
+            rightMotor.setX(10);
+            while(isEnabled())
+            {
+                System.out.println(leftMotor.getPosition());
+
+            }
+            leftMotor.setX(0);
+            rightMotor.setX(0);
+            cfgNormalMode(leftMotor);
+            cfgNormalMode(rightMotor);
+            
+        } catch (CANTimeoutException ex) {
+            ex.printStackTrace();
+        }
+    }
+    
+    public void turn(int angle)
+    {
+        gyro.reset();
+       // pid.setPID(SmartDashboard.getNumber("P"), SmartDashboard.getNumber("I"), SmartDashboard.getNumber("D"));
+        pid.setSetpoint(angle);
+        pid.setOutputRange(-25, 25);
+        pid.enable();
+        cfgSpeedMode(leftMotor);
+        cfgSpeedMode(rightMotor);
+        while(!pid.onTarget()&& (isEnabled() || isAutonomous()))
+        {
+            try
+            {   System.out.println(out.getPidOut() + " , " + gyro.getAngle());
+                if(angle > 0)
+                {
+                    leftMotor.setX(out.getPidOut());
+                    rightMotor.setX(out.getPidOut());
+                }
+                else if(angle < 0)
+                {
+                    leftMotor.setX(out.getPidOut());
+                    rightMotor.setX(out.getPidOut());
+                    
+                }
+                System.out.println(isEnabled()+ " " + isAutonomous());
+            }
+            catch (CANTimeoutException ex)
+            {
+                ex.printStackTrace();
+            }
+        }
+        pid.disable();
+        drive.arcadeDrive(0.0 , 0.0);
+        cfgNormalMode(leftMotor);
+        cfgNormalMode(rightMotor);
+        System.out.println("Stopped Turning");
+    }
+    
     // Configure a Jaguar for Speed mode
     public void cfgSpeedMode(CANJaguar jag)
     {
@@ -78,7 +179,7 @@ public class RobotTemplate extends SimpleRobot
             jag.disableControl();
             jag.changeControlMode(CANJaguar.ControlMode.kSpeed);
             jag.setSpeedReference(CANJaguar.SpeedReference.kQuadEncoder);
-            jag.setPID(Wiring.P,Wiring.I,Wiring.D);
+            jag.setPID(Wiring.P_SPEED,Wiring.I_SPEED,Wiring.D_SPEED);
 	    //jag.setPID(0.76, 0.046, 0.0);
             jag.configEncoderCodesPerRev((Wiring.TICKSPERREV * Wiring.WHEELSPROCKET) / Wiring.DRIVESPROCKET);
 	    //jag.configMaxOutputVoltage(MAXJAGVOLTAGE);
@@ -126,10 +227,12 @@ public class RobotTemplate extends SimpleRobot
         
         cfgPosMode(leftMotor);
         cfgPosMode(rightMotor);
-        
         //shoot 3 with 1s delay in between
 	while(isAutonomous())
 	{
+            
+           /* if(!frisbeesHaveBeenShot)
+            {
 		shooter.shoot();
 		Timer.delay(time);
 		hopper.load();
@@ -137,6 +240,17 @@ public class RobotTemplate extends SimpleRobot
                 hopper.load();
                 Timer.delay(1);
                 hopper.load();
+                frisbeesHaveBeenShot = true;
+            }
+            else
+            {
+                try {
+                    leftMotor.setX(1);
+                    rightMotor.setX(1);
+                } catch (CANTimeoutException ex) {
+                    ex.printStackTrace();
+                }
+            }*/
 	}
         
         cfgNormalMode(leftMotor);
@@ -149,13 +263,19 @@ public class RobotTemplate extends SimpleRobot
     {
         
         (new Thread(dthread)).start();
-        shooting = false;
-        while(isOperatorControl())
-        {
+        boolean shooting = false;
+        
+        
+        while(isEnabled())
+        {  
+            
+            
+            
             //logic for toggling
             if(shootOn.debouncedValue())
             {
                 shooting = true;
+                System.out.println("Toggled on");
             }
             else if(shootOff.debouncedValue())
             {
@@ -173,9 +293,10 @@ public class RobotTemplate extends SimpleRobot
             }
             
             //semi automatic shooting system
-            if(stick.getRawButton(Wiring.TRIGGER) && shooting)
+            if(stick.getRawButton(Wiring.XBOX_X_BUTTON) && shooting)
             {
                 hopper.load();
+                System.out.println("Hoppa Moving");
             }    
             
         }
@@ -188,9 +309,33 @@ public class RobotTemplate extends SimpleRobot
     
     public void disabled()
     {
-	leftMotor.set(0);
-        rightMotor.set(0);
-        shooter.stop();
+        try 
+        {
+            leftMotor.setX(0);
+            rightMotor.setX(0);
+            shooter.stop();   //  JAG CHANGE
+        }
+        catch (CANTimeoutException ex) 
+        {
+            ex.printStackTrace();
+        }
     }
-
+    public void turnRightRaw(Gyro gyro)
+    {
+        gyro.reset();
+        while (gyro.getAngle() < 85)
+        {
+            drive.arcadeDrive(0, -.75);
+        }
+        drive.arcadeDrive(0,0);
+    }
+    public void turnLeftRaw(Gyro gyro)
+    {
+        gyro.reset();
+        while(gyro.getAngle() > -85)
+        {
+            drive.arcadeDrive(0, .75);
+        }
+        drive.arcadeDrive(0,0);
+    }
 }

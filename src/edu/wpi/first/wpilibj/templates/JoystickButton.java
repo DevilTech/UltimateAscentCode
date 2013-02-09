@@ -3,7 +3,8 @@ package edu.wpi.first.wpilibj.templates;
 import edu.wpi.first.wpilibj.Joystick;
 
 
-public class JoystickButton {
+public class JoystickButton
+{
     Joystick joy;
     int button;
     boolean flag = true;
