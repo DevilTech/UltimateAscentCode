@@ -18,23 +18,33 @@ public class Wiring
     //Joystick
     static public final int TRIGGER             = 1;
     //XBox
-    static public final int A_BUTTON            = 1;
-    static public final int B_BUTTON            = 2;
+    static public final int XBOX_A_BUTTON       = 1;
+    static public final int XBOX_B_BUTTON       = 2;
     static public final int XBOX_X_BUTTON       = 3;
+    static public final int XBOX_Y_BUTTON       = 4;
+    static public final int XBOX_RIGHT_BUMPER   = 6;
     //Motors
     static public final int LEFT_WHEEL          = 7;
     static public final int RIGHT_WHEEL         = 6;
     static public final int SHOOTER_MOTOR       = 4;
     static public final int HOPPER_SERVO        = 1;
-    static public final int CLIMBER_MOTOR       = 5;
+    static public final int WINCH_MOTOR         = 5;
+    static public final int CLIMBING_UP         = 1;
+    static public final int CLIMBING_DOWN       = 2;
+    static public final int CLIMBING_FORWARD    = 3;
+    static public final int CLIMBING_BACKWARD   = 4;
     //Analog
     static public final int GYRO_ANALOG         = 2;
     //Digital I/O
     static public final int AUTONOMOUS_SWITCH_A = 4;
     static public final int AUTONOMOUS_SWITCH_B = 5;
+    static public final int CYLINDER_HOME       = 1;
+    static public final int CYLINDER_PART       = 2;
+    static public final int CYLINDER_MAX        = 3;
     //Joysticks
     static public final int WHEEL               = 2;
     static public final int THROTTLE            = 1;
+    static public final int COPILOT             = 3;
     //MISC
     static public final double TURN_TOLERANCE   = .75;
     static public final double TURN_DELAY       = 1.0/16.0;

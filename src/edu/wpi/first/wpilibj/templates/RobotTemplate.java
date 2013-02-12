@@ -17,10 +17,16 @@ public class RobotTemplate extends SimpleRobot
     RobotDrive drive;
     Joystick stick;
     Joystick wheel;
+    Joystick copilot;
     JoystickButton shootOn;
     JoystickButton shootOff;
     JoystickButton move;
     JoystickButton h90;
+    JoystickButton forward;
+    JoystickButton backward;
+    JoystickButton upPart;
+    JoystickButton upMax;
+    JoystickButton down;
     Shooter shooter;
     Hopper hopper;
     DigitalInput autonomousA;
@@ -30,9 +36,8 @@ public class RobotTemplate extends SimpleRobot
     int time;
     Output out;
     boolean frisbeesHaveBeenShot = false;
-    
-    
-
+    Compressor comp; 
+    ClimbingSystem climb; 
     
     public void robotInit()
     {
@@ -42,10 +47,16 @@ public class RobotTemplate extends SimpleRobot
             rightMotor = new CANJaguar(Wiring.RIGHT_WHEEL);// JAG CHANGE
             wheel = new Joystick(Wiring.WHEEL);
             stick = new Joystick(Wiring.THROTTLE);
+            copilot = new Joystick(Wiring.COPILOT);
             drive = new RobotDrive(leftMotor, rightMotor);
             dthread = new DriveThread(this, drive, wheel, stick);// JAG CHANGE
-            shootOn = new JoystickButton(stick, Wiring.A_BUTTON);
-            shootOff = new JoystickButton(stick, Wiring.B_BUTTON);
+            shootOn = new JoystickButton(stick, 3);
+            shootOff = new JoystickButton(stick, 2);
+            forward = new JoystickButton(copilot, Wiring.XBOX_A_BUTTON);
+            backward = new JoystickButton(copilot, Wiring.XBOX_B_BUTTON);
+            upPart = new JoystickButton(copilot, Wiring.XBOX_X_BUTTON);
+            upMax = new JoystickButton(copilot, Wiring.XBOX_Y_BUTTON);
+            down = new JoystickButton(copilot, Wiring.XBOX_RIGHT_BUMPER);
             move = new JoystickButton(stick, 6);
             shooter = new Shooter(Wiring.SHOOTER_MOTOR);
             hopper = new Hopper(Wiring.HOPPER_SERVO);
@@ -62,7 +73,9 @@ public class RobotTemplate extends SimpleRobot
             SmartDashboard.putNumber("P", 0.0);
             SmartDashboard.putNumber("I", 0.0);
             SmartDashboard.putNumber("D", 0.0);
-           
+            comp = new Compressor(1,1);
+            climb = new ClimbingSystem(Wiring.CLIMBING_UP, Wiring.CLIMBING_DOWN, Wiring.CLIMBING_FORWARD, Wiring.CLIMBING_BACKWARD, Wiring.WINCH_MOTOR, Wiring.CYLINDER_HOME, Wiring.CYLINDER_PART, Wiring.CYLINDER_MAX);
+            
         } 
         catch (CANTimeoutException ex) 
         {
@@ -290,6 +303,42 @@ public class RobotTemplate extends SimpleRobot
             else
             {
                 shooter.stop();
+            }
+            
+            //climbing controls
+            if(forward.debouncedValue())
+            {
+                climb.goForward();
+            }
+            if(backward.debouncedValue())
+            {
+                climb.goBackward();
+            }
+            if(upPart.debouncedValue())
+            {
+                climb.goUpPart();
+            }
+            if(upMax.debouncedValue())
+            {
+                climb.goUpMax();
+            }
+            if(down.debouncedValue())
+            {
+                climb.goDown();
+            }
+            
+            //Climbing checks
+            if(!climb.isHome())
+            {
+                climb.stopDown();
+            }
+            if(!climb.isPart())
+            {
+                climb.stopUp();
+            }
+            if(!climb.isMax())
+            {
+                climb.stopUp();
             }
             
             //semi automatic shooting system
