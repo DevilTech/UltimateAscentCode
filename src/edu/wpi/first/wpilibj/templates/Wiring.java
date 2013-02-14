@@ -27,7 +27,8 @@ public class Wiring
     static public final int LEFT_WHEEL          = 7;
     static public final int RIGHT_WHEEL         = 6;
     static public final int SHOOTER_MOTOR       = 4;
-    static public final int HOPPER_SERVO        = 1;
+    static public final int HOPPER_VICTOR       = 4;
+    static public final int HOPPER_MAGNET       = 1;
     static public final int WINCH_MOTOR         = 5;
     static public final int CLIMBING_UP         = 1;
     static public final int CLIMBING_DOWN       = 2;
@@ -47,7 +48,7 @@ public class Wiring
     static public final int COPILOT             = 3;
     //MISC
     static public final double TURN_TOLERANCE   = .75;
-    static public final double TURN_DELAY       = 1.0/16.0;
+    static public final double TURN_DELAY       = 1.0/10.0;
     static public final double P_SPEED          = .76;
     static public final double I_SPEED          = .046;
     static public final double D_SPEED          = 0.0;

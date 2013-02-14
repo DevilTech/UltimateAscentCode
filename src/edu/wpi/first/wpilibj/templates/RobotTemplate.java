@@ -37,12 +37,14 @@ public class RobotTemplate extends SimpleRobot
     Output out;
     boolean frisbeesHaveBeenShot = false;
     Compressor comp; 
-    ClimbingSystem climb; 
+    ClimbingSystem climb;
+    DigitalInput mag;
     
     public void robotInit()
     {
         try 
         {
+            mag = new DigitalInput(Wiring.HOPPER_MAGNET);
             leftMotor = new CANJaguar(Wiring.LEFT_WHEEL);
             rightMotor = new CANJaguar(Wiring.RIGHT_WHEEL);// JAG CHANGE
             wheel = new Joystick(Wiring.WHEEL);
@@ -59,7 +61,7 @@ public class RobotTemplate extends SimpleRobot
             down = new JoystickButton(copilot, Wiring.XBOX_RIGHT_BUMPER);
             move = new JoystickButton(stick, 6);
             shooter = new Shooter(Wiring.SHOOTER_MOTOR);
-            hopper = new Hopper(Wiring.HOPPER_SERVO);
+            hopper = new Hopper(Wiring.HOPPER_VICTOR, mag);
             autonomousA = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_A);
             autonomousB = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_B);
             gyro = new Gyro(Wiring.GYRO_ANALOG);
@@ -69,12 +71,12 @@ public class RobotTemplate extends SimpleRobot
             pid.setAbsoluteTolerance(1);
             SmartDashboard.putNumber("Lower Servo Angle", 0.0);
             SmartDashboard.putNumber("Higher Servo Angle", 0.0);
-            SmartDashboard.putNumber("Shooter Motor Speed", 0.0);
+            SmartDashboard.putNumber("Shooter Motor Speed", 0.250);
             SmartDashboard.putNumber("P", 0.0);
             SmartDashboard.putNumber("I", 0.0);
             SmartDashboard.putNumber("D", 0.0);
-            comp = new Compressor(1,1);
-            climb = new ClimbingSystem(Wiring.CLIMBING_UP, Wiring.CLIMBING_DOWN, Wiring.CLIMBING_FORWARD, Wiring.CLIMBING_BACKWARD, Wiring.WINCH_MOTOR, Wiring.CYLINDER_HOME, Wiring.CYLINDER_PART, Wiring.CYLINDER_MAX);
+            //comp = new Compressor(2,2);
+           // climb = new ClimbingSystem(Wiring.CLIMBING_UP, Wiring.CLIMBING_DOWN, Wiring.CLIMBING_FORWARD, Wiring.CLIMBING_BACKWARD, Wiring.WINCH_MOTOR, Wiring.CYLINDER_HOME, Wiring.CYLINDER_PART, Wiring.CYLINDER_MAX);
             
         } 
         catch (CANTimeoutException ex) 
@@ -285,6 +287,7 @@ public class RobotTemplate extends SimpleRobot
             
             
             //logic for toggling
+            System.out.println(mag.get());
             if(shootOn.debouncedValue())
             {
                 shooting = true;
@@ -305,44 +308,44 @@ public class RobotTemplate extends SimpleRobot
                 shooter.stop();
             }
             
-            //climbing controls
-            if(forward.debouncedValue())
-            {
-                climb.goForward();
-            }
-            if(backward.debouncedValue())
-            {
-                climb.goBackward();
-            }
-            if(upPart.debouncedValue())
-            {
-                climb.goUpPart();
-            }
-            if(upMax.debouncedValue())
-            {
-                climb.goUpMax();
-            }
-            if(down.debouncedValue())
-            {
-                climb.goDown();
-            }
-            
-            //Climbing checks
-            if(!climb.isHome())
-            {
-                climb.stopDown();
-            }
-            if(!climb.isPart())
-            {
-                climb.stopUp();
-            }
-            if(!climb.isMax())
-            {
-                climb.stopUp();
-            }
+//            //climbing controls
+//            if(forward.debouncedValue())
+//            {
+//                climb.goForward();
+//            }
+//            if(backward.debouncedValue())
+//            {
+//                climb.goBackward();
+//            }
+//            if(upPart.debouncedValue())
+//            {
+//                climb.goUpPart();
+//            }
+//            if(upMax.debouncedValue())
+//            {
+//                climb.goUpMax();
+//            }
+//            if(down.debouncedValue())
+//            {
+//                climb.goDown();
+//            }
+//            
+//            //Climbing checks
+//            if(!climb.isHome())
+//            {
+//                climb.stopDown();
+//            }
+//            if(!climb.isPart())
+//            {
+//                climb.stopUp();
+//            }
+//            if(!climb.isMax())
+//            {
+//                climb.stopUp();
+//            }
             
             //semi automatic shooting system
-            if(stick.getRawButton(Wiring.XBOX_X_BUTTON) && shooting)
+            if(stick.getRawButton(1) && shooting)
             {
                 hopper.load();
                 System.out.println("Hoppa Moving");
