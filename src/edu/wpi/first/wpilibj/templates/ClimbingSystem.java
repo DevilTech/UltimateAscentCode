@@ -3,87 +3,220 @@ package edu.wpi.first.wpilibj.templates;
 import edu.wpi.first.wpilibj.CANJaguar;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.Jaguar;
+import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj.Solenoid;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.can.CANTimeoutException;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class ClimbingSystem
 {
-    
     Solenoid up;
-    Solenoid down;
     Solenoid forward;
     Solenoid back;
-    Jaguar winch;
+    CANJaguar winch;
     DigitalInput home;
     DigitalInput part;
     DigitalInput max;
-    
-    public ClimbingSystem(int u, int d, int f, int b, int w, int h, int p, int m)
+    RobotTemplate robo;
+    Timer time = new Timer();
+    double cur = 0;
+    boolean goingUpPart = false;
+    boolean goingUpMax = false;
+    boolean goingDown = false;
+    boolean goingDownSlow = false;
+    boolean completed = false;
+    int state = 0;
+    final double thresh_hold = 11.0;
+    final double downspeed = .25;
+    final double upspeed = -.5;
+    public ClimbingSystem(int u, int f, int b, int w, int h, int p, int m, RobotTemplate robo)
     {
-        up = new Solenoid(u);
-        down = new Solenoid(d);
-        forward = new Solenoid(f);
-        back = new Solenoid(b);
-        home = new DigitalInput(h);
-        part = new DigitalInput(p);
-        max = new DigitalInput(m);
-        winch = new Jaguar(w);
+        try 
+        {
+            up = new Solenoid(u);
+            forward = new Solenoid(f);
+            back = new Solenoid(b);
+            home = new DigitalInput(h);
+            part = new DigitalInput(p);
+            max = new DigitalInput(m);
+            winch = new CANJaguar(w);
+            winch.configMaxOutputVoltage(6.0);
+            this.robo = robo;
+            time.start();
+            cur = 0;
+        } 
+        catch (CANTimeoutException ex) 
+        {
+            ex.printStackTrace();
+        }
     }
     
-    public void goUpMax()
+    public void autoClimbPartial(int button)
     {
-        //try 
-        //{
-            up.set(true);
-            down.set(false);
-            winch.set(-0.5);
+        autoClimb(false, button);
+    }
+    public void autoClimbMax(int button)
+    {
+        autoClimb(true, button);
+    }
+    public void autoClimb(boolean max, int button)
+    {
 
-        //}
-        //catch (CANTimeoutException ex) 
-        //{
-        //    ex.printStackTrace();
-        //}    
+        while(robo.isEnabled() && state != 5 && !robo.isButtonPressed(button))
+        {
+            System.out.println(state);
+            switch(state)
+            {
+                case 0:
+                    goDownManual(button);
+                    state = 1;
+                    break;
+                case 1:
+                    goForward();
+                    state = 2;
+                    break;
+                case 2:
+                    if(!max)
+                    {
+                        goUpPartial(button);
+                    }
+                    else
+                    {
+                        goUpMax(button);
+                    }
+                    state = 3;
+                    break;
+                case 3:
+                    goBackward();
+                    state = 4;
+                    break;
+                case 4:
+                    goDownManual(button);
+                    state = 5;
+                    break;
+                default:
+                    stop();
+                    break;
+            }
                 
+        }
+        state = 0;
+        System.out.println("****ABORTED*****");
     }
+   
     
-    public void goUpPart()
+    public void goUpMax(int button)
     {
-        //try 
-        //{
+        double curTime = time.get();
+        try
+        {
+            if(!max.get())
+                {
+                    return;
+                }
+                up.set(true);
+                winch.setX(upspeed);
+                while(robo.isEnabled())
+                {
+                    if(robo.isButtonPressed(button))
+                    {
+                        stop();
+                        break;
+                    }
+                    System.out.println("Time: " + time.get());
+                    if(!home.get() && time.get() > curTime + 2.0)
+                    {
+                        winch.setX(0.0);
+                        break;
+                    }
+                    if(!max.get())
+                    {
+                        winch.setX(0.0);
+                        break;
+                    }  
+                }
+        }
+        catch (CANTimeoutException ex) 
+        {
+            ex.printStackTrace();
+        }
+    }
+    public void goUpPartial(int button) 
+    {
+        double curTime = time.get();
+        try 
+        {
+            if(home.get())
+            {
+                
+                return;
+            }
             up.set(true);
-            down.set(false);
-            winch.set(-0.5);
-        //}
-        //catch (CANTimeoutException ex) 
-        //{
-        //    ex.printStackTrace();
-        //}
+            winch.setX(upspeed);
+            while(robo.isEnabled())
+            {
+                if(robo.isButtonPressed(button))
+                {
+                    stop();
+                    break;
+                }
+                if(!home.get() && time.get() > curTime + 2.0)
+                {
+                    winch.setX(0.0);
+                    break;
+                }
+                if(!part.get() || !max.get())
+                {
+                    winch.setX(0.0);
+                    break;
+                }
+            }
+            
+            
+        } 
+        catch (CANTimeoutException ex) 
+        {
+            ex.printStackTrace();
+        }
     }
-    
-    public void climb()
+    public void goDownManual(int button)
     {
-       //**ATTENTION** FIRST GO DOWN SLOW, THEN ONCE THE CURRENT REACHES A CERTAIN THREASHHOLD, THEN GO DOWN QUICKLY AND CONTINUE UNTIL YOU HIT HOME.
-    }
-    
-    public void goDownSlow()
-    {
-        up.set(false);
-        down.set(true);
-        winch.set(0.5);
-    }
-    public void goDown()
-    {
-        //try 
-        //{
-            System.out.println("Go Down");
-            up.set(false);
-            down.set(false);
-            winch.set(0.5);
-        //}
-        //catch (CANTimeoutException ex) 
-        //{
-        //    ex.printStackTrace();
-        //}
+        try 
+        {
+            if(!home.get())
+            {
+                //we are at home: Bail out
+                return;
+            }
+            up.set(true);
+            winch.setX(downspeed);
+            while(robo.isEnabled())
+            {
+                if(robo.isButtonPressed(button))
+                {
+                    stop();
+                    break;
+                }
+                if(!home.get())
+                {
+                    winch.setX(0.0);
+                    up.set(false);
+                    break;
+                }
+                if(isHitBar())
+                {
+                    //**ATTENTION** adjust motor speed if needed to a higher speed
+                    winch.setX(.5);
+                    up.set(false);
+                }
+            }
+        }
+        catch (CANTimeoutException ex)
+        {
+            ex.printStackTrace();
+        }
+        
     }
     
     public void goForward()
@@ -98,32 +231,54 @@ public class ClimbingSystem
         back.set(true);
     }
     
-    public void stopDown()
+    
+    public boolean isHitBar()
     {
-        up.set(false);
-        down.set(false);
-        winch.set(0.0);
+        boolean hitbar = false;
+        try 
+        {
+            SmartDashboard.putNumber("Current", winch.getOutputCurrent()); //change to winch.getOutputCurrent()
+            SmartDashboard.putNumber("Cur", cur);
+            double value = winch.getOutputCurrent();
+            System.out.println("Current value: " + value + " cur: " + cur );          
+            if(value <= 2.0) //Is 2.0 B/C we don't want to sample too fast so it will never fall out of the 
+            {
+                cur = value;
+                System.out.println("Stuck Here, Value:  " + value);
+            }
+            else if(value >= (cur + thresh_hold))
+            {
+                hitbar = true;
+                System.out.println("*********HITBAR IS TRUE******");
+            }
+            
+            else
+            {
+                hitbar = false;
+            }
+            
+            
+        } 
+        catch (CANTimeoutException ex) 
+        {
+            ex.printStackTrace();
+        }
+        System.out.println("Hitbar: " + hitbar);
+        return hitbar;
     }
     
-    public void stopUp()
+    public void stop()
     {
-        up.set(false);
-        down.set(true);
-        winch.set(0.0);
+        try {
+            up.set(false);
+            forward.set(false);
+            back.set(false);
+            winch.setX(0.0);
+        } catch (CANTimeoutException ex) {
+            ex.printStackTrace();
+        }
     }
+
     
-    public boolean isHome()
-    {
-        return home.get();
-    }
     
-    public boolean isPart()
-    {
-        return part.get();
-    }
-    
-    public boolean isMax()
-    {
-        return max.get();
-    }
 }
