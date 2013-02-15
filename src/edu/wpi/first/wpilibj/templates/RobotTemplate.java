@@ -27,6 +27,8 @@ public class RobotTemplate extends SimpleRobot
     JoystickButton upPart;
     JoystickButton upMax;
     JoystickButton down;
+    JoystickButton autoFirst;
+    JoystickButton autoClimb;
     Shooter shooter;
     Hopper hopper;
     DigitalInput autonomousA;
@@ -37,45 +39,49 @@ public class RobotTemplate extends SimpleRobot
     Output out;
     boolean frisbeesHaveBeenShot = false;
     Compressor comp; 
-    ClimbingSystem climb; 
+    ClimbingSystem climb;
+    DigitalInput mag;
+    
     
     public void robotInit()
     {
         try 
         {
-            leftMotor = new CANJaguar(Wiring.LEFT_WHEEL);
-            rightMotor = new CANJaguar(Wiring.RIGHT_WHEEL);// JAG CHANGE
-            wheel = new Joystick(Wiring.WHEEL);
-            stick = new Joystick(Wiring.THROTTLE);
-            copilot = new Joystick(Wiring.COPILOT);
-            drive = new RobotDrive(leftMotor, rightMotor);
-            dthread = new DriveThread(this, drive, wheel, stick);// JAG CHANGE
-            shootOn = new JoystickButton(stick, 3);
-            shootOff = new JoystickButton(stick, 2);
-            forward = new JoystickButton(copilot, Wiring.XBOX_A_BUTTON);
-            backward = new JoystickButton(copilot, Wiring.XBOX_B_BUTTON);
-            upPart = new JoystickButton(copilot, Wiring.XBOX_X_BUTTON);
-            upMax = new JoystickButton(copilot, Wiring.XBOX_Y_BUTTON);
-            down = new JoystickButton(copilot, Wiring.XBOX_RIGHT_BUMPER);
-            move = new JoystickButton(stick, 6);
-            shooter = new Shooter(Wiring.SHOOTER_MOTOR);
-            hopper = new Hopper(Wiring.HOPPER_SERVO);
+            mag         = new DigitalInput(Wiring.HOPPER_MAGNET);
+            leftMotor   = new CANJaguar(Wiring.LEFT_WHEEL);
+            rightMotor  = new CANJaguar(Wiring.RIGHT_WHEEL);// JAG CHANGE
+            wheel       = new Joystick(Wiring.WHEEL);
+            stick       = new Joystick(Wiring.THROTTLE);
+            copilot     = new Joystick(Wiring.COPILOT);
+            drive       = new RobotDrive(leftMotor, rightMotor);
+            dthread     = new DriveThread(this, drive, stick);// JAG CHANGE
+            shootOn     = new JoystickButton(stick, 3);
+            shootOff    = new JoystickButton(stick, 2);
+            forward     = new JoystickButton(copilot, Wiring.FORWARD);
+            backward    = new JoystickButton(copilot, Wiring.BACKWARD);
+            upPart      = new JoystickButton(copilot, Wiring.CLIMB_UP_PART);
+            upMax       = new JoystickButton(copilot, Wiring.CLIMB_UP_MAX);
+            down        = new JoystickButton(copilot, Wiring.CLIMB_DOWN);
+            autoClimb   = new JoystickButton(copilot, Wiring.AUTO_CLIMB);
+            autoFirst   = new JoystickButton(copilot, Wiring.AUTO_CLIMB_FIRST);
+            move        = new JoystickButton(stick, 6);
+            shooter     = new Shooter(Wiring.SHOOTER_MOTOR);
+            hopper      = new Hopper(Wiring.HOPPER_VICTOR, mag);
             autonomousA = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_A);
             autonomousB = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_B);
-            gyro = new Gyro(Wiring.GYRO_ANALOG);
-            out = new Output();
-            pid = new PIDController(Wiring.P, Wiring.I, Wiring.D, gyro, out);
-            pid.startLiveWindowMode();
+            gyro        = new Gyro(Wiring.GYRO_ANALOG);
+            out         = new Output();
+            pid         = new PIDController(Wiring.P, Wiring.I, Wiring.D, gyro, out);
+            comp        = new Compressor(1,1);
+            climb       = new ClimbingSystem(Wiring.CLIMB_SOLENOID_UP, Wiring.CLIMBING_SOLENOID_FORWARD, Wiring.CLIMBING_SOLENOID_BACKWARD,Wiring.WINCH_MOTOR,Wiring.CYLINDER_HOME,Wiring.CYLINDER_PART,Wiring.CYLINDER_MAX,this);
             pid.setAbsoluteTolerance(1);
             SmartDashboard.putNumber("Lower Servo Angle", 0.0);
             SmartDashboard.putNumber("Higher Servo Angle", 0.0);
-            SmartDashboard.putNumber("Shooter Motor Speed", 0.0);
+            SmartDashboard.putNumber("Shooter Motor Speed", 0.250);
             SmartDashboard.putNumber("P", 0.0);
             SmartDashboard.putNumber("I", 0.0);
             SmartDashboard.putNumber("D", 0.0);
-            comp = new Compressor(1,1);
-            climb = new ClimbingSystem(Wiring.CLIMBING_UP, Wiring.CLIMBING_DOWN, Wiring.CLIMBING_FORWARD, Wiring.CLIMBING_BACKWARD, Wiring.WINCH_MOTOR, Wiring.CYLINDER_HOME, Wiring.CYLINDER_PART, Wiring.CYLINDER_MAX);
-            
+           
         } 
         catch (CANTimeoutException ex) 
         {
@@ -288,66 +294,55 @@ public class RobotTemplate extends SimpleRobot
             if(shootOn.debouncedValue())
             {
                 shooting = true;
+                shooter.shoot();
                 System.out.println("Toggled on");
             }
             else if(shootOff.debouncedValue())
             {
+                shooter.stop();
                 shooting = false;
             }
             
             //shoot if not already pressed down
             if(shooting)
             {
-                shooter.shoot();
+                shooter.setSpeed(SmartDashboard.getNumber("Shooter Motor Speed"));
             }
             else
             {
                 shooter.stop();
             }
             
-            //climbing controls
-            if(forward.debouncedValue())
-            {
-                climb.goForward();
-            }
-            if(backward.debouncedValue())
-            {
-                climb.goBackward();
-            }
-            if(upPart.debouncedValue())
-            {
-                climb.goUpPart();
-            }
-            if(upMax.debouncedValue())
-            {
-                climb.goUpMax();
-            }
-            if(down.debouncedValue())
-            {
-                climb.goDown();
-            }
-            
-            //Climbing checks
-            if(!climb.isHome())
-            {
-                climb.stopDown();
-            }
-            if(!climb.isPart())
-            {
-                climb.stopUp();
-            }
-            if(!climb.isMax())
-            {
-                climb.stopUp();
-            }
             
             //semi automatic shooting system
-            if(stick.getRawButton(Wiring.XBOX_X_BUTTON) && shooting)
+            if(stick.getRawButton(Wiring.TRIGGER) && shooting)
             {
                 hopper.load();
                 System.out.println("Hoppa Moving");
             }    
             
+            
+            //climbing
+           if(upPart.debouncedValue())
+           {
+               climb.goUpPartial(Wiring.CLIMB_UP_PART);
+           }
+           if(upMax.debouncedValue())
+           {
+               climb.goUpMax(Wiring.CLIMB_UP_MAX);
+           }
+           if(down.debouncedValue())
+           {
+               climb.goDownManual(Wiring.CLIMB_DOWN);
+           }
+           if(autoFirst.debouncedValue())
+           {
+               climb.autoClimbPartial(Wiring.AUTO_CLIMB_FIRST);
+           }
+           if(autoClimb.debouncedValue())
+           {
+               climb.autoClimbMax(Wiring.AUTO_CLIMB);
+           }
         }
     }
     
@@ -386,5 +381,17 @@ public class RobotTemplate extends SimpleRobot
             drive.arcadeDrive(0, .75);
         }
         drive.arcadeDrive(0,0);
+    }
+    
+    public boolean isButtonPressed(int x)
+    {
+        for(int i = 1; i<12; i++)
+        {
+            if(i != x && stick.getRawButton(i))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 }

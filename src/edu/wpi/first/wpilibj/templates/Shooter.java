@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class Shooter 
 {
     CANJaguar shoot;
+    double speed;
     
     public Shooter(int port)
     {
@@ -24,15 +25,7 @@ public class Shooter
     
     public void shoot()
     {
-        /*try 
-        {
-            shoot.setX(SmartDashboard.getNumber("Shooter Motor Speed"));
-        }
-        catch (CANTimeoutException ex)
-        {
-            ex.printStackTrace();
-        }*/
-        
+   
         try 
         {
             shoot.setX(SmartDashboard.getNumber("Shooter Motor Speed"));
@@ -55,6 +48,14 @@ public class Shooter
         }
         catch (CANTimeoutException ex) 
         {
+            ex.printStackTrace();
+        }
+    }
+    public void setSpeed(double set){
+        speed = set;
+        try{
+            shoot.setX(speed);
+        }catch(CANTimeoutException ex){
             ex.printStackTrace();
         }
     }
