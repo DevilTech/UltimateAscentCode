@@ -44,6 +44,7 @@ public class Wiring
     static public final int CLIMB_SOLENOID_UP           = 1;
     static public final int CLIMBING_SOLENOID_FORWARD   = 2;
     static public final int CLIMBING_SOLENOID_BACKWARD  = 3;
+
     //Analog
     static public final int GYRO_ANALOG                 = 2;
     //Digital I/O
@@ -58,7 +59,8 @@ public class Wiring
     static public final int THROTTLE                    = 1;
     static public final int COPILOT                     = 3;
     //MISC
-            static public final double TURN_TOLERANCE   = .75;
+
+    static public final double TURN_TOLERANCE   = .75;
     static public final double TURN_DELAY               = 1.0/16.0;
     static public final double P_SPEED                  = .76;
     static public final double I_SPEED                  = .046;

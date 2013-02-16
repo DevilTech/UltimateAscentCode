@@ -42,11 +42,11 @@ public class RobotTemplate extends SimpleRobot
     ClimbingSystem climb;
     DigitalInput mag;
     
-    
     public void robotInit()
     {
         try 
         {
+
             mag         = new DigitalInput(Wiring.HOPPER_MAGNET);
             leftMotor   = new CANJaguar(Wiring.LEFT_WHEEL);
             rightMotor  = new CANJaguar(Wiring.RIGHT_WHEEL);// JAG CHANGE
@@ -81,7 +81,7 @@ public class RobotTemplate extends SimpleRobot
             SmartDashboard.putNumber("P", 0.0);
             SmartDashboard.putNumber("I", 0.0);
             SmartDashboard.putNumber("D", 0.0);
-           
+
         } 
         catch (CANTimeoutException ex) 
         {
@@ -291,6 +291,7 @@ public class RobotTemplate extends SimpleRobot
             
             
             //logic for toggling
+            System.out.println(mag.get());
             if(shootOn.debouncedValue())
             {
                 shooting = true;
@@ -313,6 +314,7 @@ public class RobotTemplate extends SimpleRobot
                 shooter.stop();
             }
             
+
             
             //semi automatic shooting system
             if(stick.getRawButton(Wiring.TRIGGER) && shooting)
