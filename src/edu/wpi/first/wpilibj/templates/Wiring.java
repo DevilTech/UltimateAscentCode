@@ -3,13 +3,13 @@ package edu.wpi.first.wpilibj.templates;
 public class Wiring
 {
     //Climb buttons
-    static public final int CLIMB_UP_PART               = 4;
-    static public final int CLIMB_UP_MAX                = 5;
-    static public final int CLIMB_DOWN                  = 2;
-    static public final int AUTO_CLIMB_FIRST            = 6;
-    static public final int AUTO_CLIMB                  = 7;
-    static public final int FORWARD                     = 11;
-    static public final int BACKWARD                    = 10;
+    static public final int CLIMB_UP_PART               = 13;
+    static public final int CLIMB_UP_MAX                = 11;
+    static public final int CLIMB_DOWN                  = 15;
+    static public final int AUTO_CLIMB_FIRST            = 12;
+    static public final int AUTO_CLIMB                  = 16;
+    static public final int FORWARD_BACK                = 9; // FORWARD IS OFF, BACK IS ON
+    static public final int CLIMB_ON                    = 7;
     //wheel buttons
     static public final int WHEEL_X_BUTTON              = 1;
     static public final int SQUARE_BUTTON               = 2;

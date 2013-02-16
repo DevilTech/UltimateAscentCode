@@ -12,12 +12,16 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class RobotTemplate extends SimpleRobot
 {
     DriveThread dthread;
+    
     CANJaguar leftMotor;
     CANJaguar rightMotor;
+    
     RobotDrive drive;
+    
     Joystick stick;
     Joystick wheel;
     Joystick copilot;
+    
     JoystickButton shootOn;
     JoystickButton shootOff;
     JoystickButton move;
@@ -27,8 +31,8 @@ public class RobotTemplate extends SimpleRobot
     JoystickButton upPart;
     JoystickButton upMax;
     JoystickButton down;
-    JoystickButton autoFirst;
     JoystickButton autoClimb;
+    
     Shooter shooter;
     Hopper hopper;
     DigitalInput autonomousA;
@@ -38,6 +42,7 @@ public class RobotTemplate extends SimpleRobot
     int time;
     Output out;
     boolean frisbeesHaveBeenShot = false;
+    DriverStationEnhancedIO driverStationButtons = DriverStation.getInstance().getEnhancedIO();
     Compressor comp; 
     ClimbingSystem climb;
     DigitalInput mag;
@@ -47,23 +52,30 @@ public class RobotTemplate extends SimpleRobot
         try 
         {
 
-            mag         = new DigitalInput(Wiring.HOPPER_MAGNET);
-            leftMotor   = new CANJaguar(Wiring.LEFT_WHEEL);
-            rightMotor  = new CANJaguar(Wiring.RIGHT_WHEEL);// JAG CHANGE
+            //Joystick Constructors
             wheel       = new Joystick(Wiring.WHEEL);
             stick       = new Joystick(Wiring.THROTTLE);
             copilot     = new Joystick(Wiring.COPILOT);
+            
+            //Drive Constructors
+            leftMotor   = new CANJaguar(Wiring.LEFT_WHEEL);
+            rightMotor  = new CANJaguar(Wiring.RIGHT_WHEEL);// JAG CHANGE
             drive       = new RobotDrive(leftMotor, rightMotor);
             dthread     = new DriveThread(this, drive, stick);// JAG CHANGE
+            
+            
+            //Climber Constructors
+            upPart      = new JoystickButton(Wiring.CLIMB_UP_PART);
+            upMax       = new JoystickButton(Wiring.CLIMB_UP_MAX);
+            down        = new JoystickButton(Wiring.CLIMB_DOWN);
+            autoClimb   = new JoystickButton(Wiring.AUTO_CLIMB);
+            climb       = new ClimbingSystem(this);
+            comp        = new Compressor(1,1);
+            
+            //Shooter Constructors
+            mag         = new DigitalInput(Wiring.HOPPER_MAGNET);
             shootOn     = new JoystickButton(stick, 3);
             shootOff    = new JoystickButton(stick, 2);
-            forward     = new JoystickButton(copilot, Wiring.FORWARD);
-            backward    = new JoystickButton(copilot, Wiring.BACKWARD);
-            upPart      = new JoystickButton(copilot, Wiring.CLIMB_UP_PART);
-            upMax       = new JoystickButton(copilot, Wiring.CLIMB_UP_MAX);
-            down        = new JoystickButton(copilot, Wiring.CLIMB_DOWN);
-            autoClimb   = new JoystickButton(copilot, Wiring.AUTO_CLIMB);
-            autoFirst   = new JoystickButton(copilot, Wiring.AUTO_CLIMB_FIRST);
             move        = new JoystickButton(stick, 6);
             shooter     = new Shooter(Wiring.SHOOTER_MOTOR);
             hopper      = new Hopper(Wiring.HOPPER_VICTOR, mag);
@@ -72,9 +84,8 @@ public class RobotTemplate extends SimpleRobot
             gyro        = new Gyro(Wiring.GYRO_ANALOG);
             out         = new Output();
             pid         = new PIDController(Wiring.P, Wiring.I, Wiring.D, gyro, out);
-            comp        = new Compressor(1,1);
-            climb       = new ClimbingSystem(Wiring.CLIMB_SOLENOID_UP, Wiring.CLIMBING_SOLENOID_FORWARD, Wiring.CLIMBING_SOLENOID_BACKWARD,Wiring.WINCH_MOTOR,Wiring.CYLINDER_HOME,Wiring.CYLINDER_PART,Wiring.CYLINDER_MAX,this);
             pid.setAbsoluteTolerance(1);
+            
             SmartDashboard.putNumber("Lower Servo Angle", 0.0);
             SmartDashboard.putNumber("Higher Servo Angle", 0.0);
             SmartDashboard.putNumber("Shooter Motor Speed", 0.250);
@@ -324,27 +335,7 @@ public class RobotTemplate extends SimpleRobot
             }    
             
             
-            //climbing
-           if(upPart.debouncedValue())
-           {
-               climb.goUpPartial(Wiring.CLIMB_UP_PART);
-           }
-           if(upMax.debouncedValue())
-           {
-               climb.goUpMax(Wiring.CLIMB_UP_MAX);
-           }
-           if(down.debouncedValue())
-           {
-               climb.goDownManual(Wiring.CLIMB_DOWN);
-           }
-           if(autoFirst.debouncedValue())
-           {
-               climb.autoClimbPartial(Wiring.AUTO_CLIMB_FIRST);
-           }
-           if(autoClimb.debouncedValue())
-           {
-               climb.autoClimbMax(Wiring.AUTO_CLIMB);
-           }
+            climbingCheck();
         }
     }
     
@@ -385,14 +376,79 @@ public class RobotTemplate extends SimpleRobot
         drive.arcadeDrive(0,0);
     }
     
-    public boolean isButtonPressed(int x)
+    public void climbingCheck()
     {
-        for(int i = 1; i<12; i++)
+        try {
+            //climbing
+            System.out.println("Climb On: " + driverStationButtons.getDigital(Wiring.CLIMB_ON));
+            if (driverStationButtons.getDigital(Wiring.CLIMB_ON))
+            {
+               //System.out.println("Up Part Button: " + upPart.debouncedValueDigital());
+               //System.out.println("Up Max Button: " + upMax.debouncedValueDigital());
+               //System.out.println("Down Button: " + down.debouncedValueDigital());
+
+               if (upPart.debouncedValueDigital())
+               {
+                   climb.goUpPartial(Wiring.CLIMB_UP_PART);
+               }
+
+               else if (upMax.debouncedValueDigital())
+               {
+                   climb.goUpMax(Wiring.CLIMB_UP_MAX);
+               }
+
+               else if (down.debouncedValueDigital())
+               {
+                   climb.goDownManual(Wiring.CLIMB_DOWN);
+               }
+
+               else if (autoClimb.debouncedValueDigital())
+               {
+                    if(!driverStationButtons.getDigital(Wiring.FORWARD_BACK))
+                    {
+                        climb.autoClimbPartial(Wiring.AUTO_CLIMB_FIRST);
+                    }
+                    else 
+                    {
+                        System.out.println("AutoClimb Button: " + autoClimb.debouncedValueDigital());
+                        climb.autoClimbMax(Wiring.AUTO_CLIMB);
+                    }
+               } 
+               else 
+               {
+                    System.out.println("Forward Backward: " + driverStationButtons.getDigital(Wiring.FORWARD_BACK));
+                    if (driverStationButtons.getDigital(Wiring.FORWARD_BACK))
+                    {
+                        climb.goBackward();
+                    }
+                    else
+                    {
+                        climb.goForward();
+                    }
+               }
+            }
+            else
+            {
+                climb.stop();
+            }
+
+        } catch (DriverStationEnhancedIO.EnhancedIOException ex) {
+            ex.printStackTrace();
+        }
+    }
+   
+    public boolean shouldAbort() {
+        try 
         {
-            if(i != x && stick.getRawButton(i))
+            if(!isEnabled() || !driverStationButtons.getDigital(Wiring.CLIMB_ON) )
             {
                 return true;
             }
+            
+        }
+        catch (DriverStationEnhancedIO.EnhancedIOException ex) 
+        {
+            ex.printStackTrace();
         }
         return false;
     }
