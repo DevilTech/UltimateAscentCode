@@ -19,6 +19,7 @@ public class ClimbingSystem
     RobotTemplate robo;
     
     Timer time = new Timer();
+    ErrorHandler errHandler = ErrorHandler.getErrorHandler();
     
     double typicalCurrent = 0;
  
@@ -113,6 +114,7 @@ public class ClimbingSystem
         {
             if(!max.get())
             {
+                errHandler.error("ALREADY AT MAX HEIGHT");
                 return;
             }
 
@@ -130,6 +132,7 @@ public class ClimbingSystem
                     // abort if stuck at home for more than 2 seconds
                     if(!home.get() && time.get() > curTime + 2.0)
                     {
+                        errHandler.error("STUCK AT HOME, WINCH DISABLED");
                         winch.setX(0.0);
                         break;
                     }
@@ -154,7 +157,8 @@ public class ClimbingSystem
         try
         {
             if(home.get())
-            {                
+            {      
+                errHandler.error("NOT AT HOME, RETURN HOME BEFORE RAISING TO PART");
                 return;
             }
 
@@ -172,12 +176,19 @@ public class ClimbingSystem
                 //abort if stuck at home for more than 2 seconds
                 if(!home.get() && time.get() > curTime + 2.0)
                 {
+                    errHandler.error("STUCK AT HOME, WINCH DISABLED");
                     winch.setX(0.0);
                     break;
                 }
 
-                if(!part.get() || !max.get())
+                if(!part.get())
                 {
+                    winch.setX(0.0);
+                    break;
+                }
+                if(!max.get())
+                {
+                    errHandler.error("PASSED PART, AND REACHED MAX, RESET TO HOME");
                     winch.setX(0.0);
                     break;
                 }
@@ -197,6 +208,7 @@ public class ClimbingSystem
             if(!home.get())
             {
                 //we are at home: Bail out
+                errHandler.error("ALREADY AT HOME");
                 return;
             }
 

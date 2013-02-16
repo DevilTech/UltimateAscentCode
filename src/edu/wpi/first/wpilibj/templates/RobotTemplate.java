@@ -1,57 +1,51 @@
 package edu.wpi.first.wpilibj.templates;
 
-import com.sun.squawk.platform.windows.natives.Time;
 import edu.wpi.first.wpilibj.*;
 import edu.wpi.first.wpilibj.can.CANTimeoutException;
-import edu.wpi.first.wpilibj.livewindow.LiveWindow;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-
-
-
 
 public class RobotTemplate extends SimpleRobot
 {
+    //Drive System
     DriveThread dthread;
-    
     CANJaguar leftMotor;
     CANJaguar rightMotor;
-    
     RobotDrive drive;
-    
     Joystick stick;
     Joystick wheel;
     Joystick copilot;
     
+    //Shooter
     JoystickButton shootOn;
     JoystickButton shootOff;
-    JoystickButton move;
-    JoystickButton h90;
-    JoystickButton forward;
-    JoystickButton backward;
+    Shooter shooter;
+    Hopper hopper;
+    boolean shooting = false;
+    
+    //Climbing
     JoystickButton upPart;
     JoystickButton upMax;
     JoystickButton down;
     JoystickButton autoClimb;
-    
-    Shooter shooter;
-    Hopper hopper;
-    DigitalInput autonomousA;
-    DigitalInput autonomousB;
-    PIDController pid;
-    Gyro gyro;
-    int time;
-    Output out;
-    boolean frisbeesHaveBeenShot = false;
     DriverStationEnhancedIO driverStationButtons = DriverStation.getInstance().getEnhancedIO();
     Compressor comp; 
     ClimbingSystem climb;
-    DigitalInput mag;
+    
+    //Autonomous Crap
+    DigitalInput autonomousA;
+    DigitalInput autonomousB;
+    Gyro gyro;
+        
+    PIDController pid;
+    Output out;
+
+    
+    ErrorHandler errHandler = ErrorHandler.getErrorHandler();
     
     public void robotInit()
     {
         try 
         {
-
             //Joystick Constructors
             wheel       = new Joystick(Wiring.WHEEL);
             stick       = new Joystick(Wiring.THROTTLE);
@@ -63,7 +57,6 @@ public class RobotTemplate extends SimpleRobot
             drive       = new RobotDrive(leftMotor, rightMotor);
             dthread     = new DriveThread(this, drive, stick);// JAG CHANGE
             
-            
             //Climber Constructors
             upPart      = new JoystickButton(Wiring.CLIMB_UP_PART);
             upMax       = new JoystickButton(Wiring.CLIMB_UP_MAX);
@@ -73,52 +66,189 @@ public class RobotTemplate extends SimpleRobot
             comp        = new Compressor(1,1);
             
             //Shooter Constructors
-            mag         = new DigitalInput(Wiring.HOPPER_MAGNET);
-            shootOn     = new JoystickButton(stick, 3);
-            shootOff    = new JoystickButton(stick, 2);
-            move        = new JoystickButton(stick, 6);
+            shootOn     = new JoystickButton(stick, Wiring.SHOOTER_MOTOR_ON);
+            shootOff    = new JoystickButton(stick, Wiring.SHOOTER_MOTOR_OFF);
             shooter     = new Shooter(Wiring.SHOOTER_MOTOR);
-            hopper      = new Hopper(Wiring.HOPPER_VICTOR, mag);
+            hopper      = new Hopper(Wiring.HOPPER_MOTOR);
+            
+            //Autonomous Stuff
             autonomousA = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_A);
             autonomousB = new DigitalInput(Wiring.AUTONOMOUS_SWITCH_B);
             gyro        = new Gyro(Wiring.GYRO_ANALOG);
             out         = new Output();
             pid         = new PIDController(Wiring.P, Wiring.I, Wiring.D, gyro, out);
             pid.setAbsoluteTolerance(1);
-            
             SmartDashboard.putNumber("Lower Servo Angle", 0.0);
             SmartDashboard.putNumber("Higher Servo Angle", 0.0);
-            SmartDashboard.putNumber("Shooter Motor Speed", 0.250);
+            SmartDashboard.putNumber("Shooter Motor Speed", 1.000);
             SmartDashboard.putNumber("P", 0.0);
             SmartDashboard.putNumber("I", 0.0);
             SmartDashboard.putNumber("D", 0.0);
-
         } 
         catch (CANTimeoutException ex) 
         {
             ex.printStackTrace();  //JAG CHANGE
         }
     }
-    
-     // Configure a Jaguar for Position mode
-    public void cfgPosMode(CANJaguar jag)
+
+    public void operatorControl()
     {
-        try
-        {
-            jag.disableControl();
-            jag.changeControlMode(CANJaguar.ControlMode.kPosition);
-            jag.setPositionReference(CANJaguar.PositionReference.kQuadEncoder);
-            jag.setPID(1000, 0.01, 20);
-            jag.configEncoderCodesPerRev(360/*((Wiring.TICKSPERREV * Wiring.WHEELSPROCKET) / Wiring.DRIVESPROCKET)/19*/);
-            //jag.configMaxOutputVoltage(Wiring.MAXJAGVOLTAGE);
-            //jag.setVoltageRampRate(50);
-            jag.enableControl();
+        (new Thread(dthread)).start();
+        
+        while(isEnabled())
+        {           
+            errHandler.refresh();
+            climbingCheck();
+            shooterCheck();
         }
-        catch (Exception ex)
+    }
+    
+    public void shooterCheck()
+    {   
+        // logic for shooter motor control
+        if (shootOn.debouncedValue())
         {
-            System.out.println(ex.toString());
+            shooting = true;
+            shooter.shoot();
         }
-    }   //  cfgPosMode
+        else if (shootOff.debouncedValue())
+        {
+            shooter.stop();
+            shooting = false;
+        }
+
+        // shoot if not already pressed down
+        if(shooting)
+        {
+            shooter.shoot();
+        }
+        else
+        {
+            shooter.stop();
+        }
+
+        //semi automatic shooting system
+        if(stick.getRawButton(Wiring.TRIGGER) && shooting)
+        {
+            hopper.load();
+        }    
+    }
+    
+    
+    public void climbingCheck()
+    {
+        try {
+            //climbing
+            System.out.println("Climb On: " + driverStationButtons.getDigital(Wiring.CLIMB_ON));
+            if (driverStationButtons.getDigital(Wiring.CLIMB_ON))
+            {
+               //System.out.println("Up Part Button: " + upPart.debouncedValueDigital());
+               //System.out.println("Up Max Button: " + upMax.debouncedValueDigital());
+               //System.out.println("Down Button: " + down.debouncedValueDigital());
+
+               if (upPart.debouncedValueDigital())
+               {
+                   climb.goUpPartial(Wiring.CLIMB_UP_PART);
+               }
+
+               else if (upMax.debouncedValueDigital())
+               {
+                   climb.goUpMax(Wiring.CLIMB_UP_MAX);
+               }
+
+               else if (down.debouncedValueDigital())
+               {
+                   climb.goDownManual(Wiring.CLIMB_DOWN);
+               }
+
+               else if (autoClimb.debouncedValueDigital())
+               {
+                    if(!driverStationButtons.getDigital(Wiring.FORWARD_BACK))
+                    {
+                        climb.autoClimbPartial(Wiring.AUTO_CLIMB_FIRST);
+                    }
+                    else 
+                    {
+                        System.out.println("AutoClimb Button: " + autoClimb.debouncedValueDigital());
+                        climb.autoClimbMax(Wiring.AUTO_CLIMB);
+                    }
+               } 
+               else 
+               {
+                    System.out.println("Forward Backward: " + driverStationButtons.getDigital(Wiring.FORWARD_BACK));
+                    if (driverStationButtons.getDigital(Wiring.FORWARD_BACK))
+                    {
+                        climb.goBackward();
+                    }
+                    else
+                    {
+                        climb.goForward();
+                    }
+               }
+            }
+            else
+            {
+                climb.stop();
+            }
+
+        } 
+        catch (DriverStationEnhancedIO.EnhancedIOException ex) 
+        {
+            ex.printStackTrace();
+        }
+    }
+   
+    public boolean shouldAbort() 
+    {
+        try 
+        {
+            if(!isEnabled() || !driverStationButtons.getDigital(Wiring.CLIMB_ON) )
+            {
+                errHandler.error("ABORTING ALL CLIMBING OPERATIONS");
+                return true;
+            }
+            
+        }
+        catch (DriverStationEnhancedIO.EnhancedIOException ex) 
+        {
+            ex.printStackTrace();
+        }
+        return false;
+    }
+    
+    public void disabled()
+    {
+        try 
+        {
+            leftMotor.setX(0);
+            rightMotor.setX(0);
+            shooter.stop();   //  JAG CHANGE
+        }
+        catch (CANTimeoutException ex) 
+        {
+            ex.printStackTrace();
+        }
+    }
+    
+    public void turnRightRaw(Gyro gyro)
+    {
+        gyro.reset();
+        while (gyro.getAngle() < 85)
+        {
+            drive.arcadeDrive(0, -.75);
+        }
+        drive.arcadeDrive(0,0);
+    }
+    
+    public void turnLeftRaw(Gyro gyro)
+    {
+        gyro.reset();
+        while(gyro.getAngle() > -85)
+        {
+            drive.arcadeDrive(0, .75);
+        }
+        drive.arcadeDrive(0,0);
+    }    
     
     public void goForwardNormal (double inches)
     {
@@ -133,7 +263,9 @@ public class RobotTemplate extends SimpleRobot
                 drive.arcadeDrive(0.5, 0.0);
                 System.out.println(leftMotor.getPosition());
             }
-        } catch (CANTimeoutException ex) {
+        } 
+        catch (CANTimeoutException ex)
+        {
             ex.printStackTrace();
         }
         drive.arcadeDrive(0.0,0.0);
@@ -158,7 +290,9 @@ public class RobotTemplate extends SimpleRobot
             cfgNormalMode(leftMotor);
             cfgNormalMode(rightMotor);
             
-        } catch (CANTimeoutException ex) {
+        } 
+        catch (CANTimeoutException ex) 
+        {
             ex.printStackTrace();
         }
     }
@@ -237,34 +371,57 @@ public class RobotTemplate extends SimpleRobot
             System.out.println(ex.toString());
         }
     }   //  cfgNormalMode
-
     
-    public void autonomous()
+    // Configure a Jaguar for Position mode
+    public void cfgPosMode(CANJaguar jag)
     {
-        //left for 2s, mid for 6s, right for 11s
+        try
+        {
+            jag.disableControl();
+            jag.changeControlMode(CANJaguar.ControlMode.kPosition);
+            jag.setPositionReference(CANJaguar.PositionReference.kQuadEncoder);
+            jag.setPID(1000, 0.01, 20);
+            jag.configEncoderCodesPerRev(360/*((Wiring.TICKSPERREV * Wiring.WHEELSPROCKET) / Wiring.DRIVESPROCKET)/19*/);
+            //jag.configMaxOutputVoltage(Wiring.MAXJAGVOLTAGE);
+            //jag.setVoltageRampRate(50);
+            jag.enableControl();
+        }
+        catch (Exception ex)
+        {
+            System.out.println(ex.toString());
+        }
+    }   //  cfgPosMode
+
+     public void autonomous()
+    {
+        boolean frisbeesHaveBeenShot = false;
+        double preShotDelay = 0.0;
+        
+        //Select the delay when shooting with a 3 position switch
+        //left for 2sec, mid for 6sec, right for 11sec
 	if(autonomousA.get() && !autonomousB.get())
 	{
-		time = 2;
+		preShotDelay = 2;
 	}
 	if(autonomousA.get() && autonomousB.get())
 	{
-		time = 6;
+		preShotDelay = 6;
 	}
 	if(!autonomousA.get() && autonomousB.get())
 	{
-		time = 11;
+		preShotDelay = 11;
 	}
         
         cfgPosMode(leftMotor);
         cfgPosMode(rightMotor);
+        
         //shoot 3 with 1s delay in between
 	while(isAutonomous())
 	{
-            
-           /* if(!frisbeesHaveBeenShot)
+            if(!frisbeesHaveBeenShot)
             {
 		shooter.shoot();
-		Timer.delay(time);
+		Timer.delay(preShotDelay);
 		hopper.load();
                 Timer.delay(1);
                 hopper.load();
@@ -272,184 +429,17 @@ public class RobotTemplate extends SimpleRobot
                 hopper.load();
                 frisbeesHaveBeenShot = true;
             }
-            else
-            {
-                try {
-                    leftMotor.setX(1);
-                    rightMotor.setX(1);
-                } catch (CANTimeoutException ex) {
-                    ex.printStackTrace();
-                }
-            }*/
+            /*else
+             * {
+             * try {
+             * leftMotor.setX(1);
+             * rightMotor.setX(1);
+             * } catch (CANTimeoutException ex) {
+             * ex.printStackTrace();
+             * }
+             * }*/
 	}
-        
         cfgNormalMode(leftMotor);
-        cfgNormalMode(rightMotor);
-        
-}
-        
-
-    public void operatorControl()
-    {
-        
-        (new Thread(dthread)).start();
-        boolean shooting = false;
-        
-        
-        while(isEnabled())
-        {  
-            
-            
-            
-            //logic for toggling
-            System.out.println(mag.get());
-            if(shootOn.debouncedValue())
-            {
-                shooting = true;
-                shooter.shoot();
-                System.out.println("Toggled on");
-            }
-            else if(shootOff.debouncedValue())
-            {
-                shooter.stop();
-                shooting = false;
-            }
-            
-            //shoot if not already pressed down
-            if(shooting)
-            {
-                shooter.setSpeed(SmartDashboard.getNumber("Shooter Motor Speed"));
-            }
-            else
-            {
-                shooter.stop();
-            }
-            
-
-            
-            //semi automatic shooting system
-            if(stick.getRawButton(Wiring.TRIGGER) && shooting)
-            {
-                hopper.load();
-                System.out.println("Hoppa Moving");
-            }    
-            
-            
-            climbingCheck();
-        }
-    }
-    
-    public void test()
-    {
-    
-    }
-    
-    public void disabled()
-    {
-        try 
-        {
-            leftMotor.setX(0);
-            rightMotor.setX(0);
-            shooter.stop();   //  JAG CHANGE
-        }
-        catch (CANTimeoutException ex) 
-        {
-            ex.printStackTrace();
-        }
-    }
-    public void turnRightRaw(Gyro gyro)
-    {
-        gyro.reset();
-        while (gyro.getAngle() < 85)
-        {
-            drive.arcadeDrive(0, -.75);
-        }
-        drive.arcadeDrive(0,0);
-    }
-    public void turnLeftRaw(Gyro gyro)
-    {
-        gyro.reset();
-        while(gyro.getAngle() > -85)
-        {
-            drive.arcadeDrive(0, .75);
-        }
-        drive.arcadeDrive(0,0);
-    }
-    
-    public void climbingCheck()
-    {
-        try {
-            //climbing
-            System.out.println("Climb On: " + driverStationButtons.getDigital(Wiring.CLIMB_ON));
-            if (driverStationButtons.getDigital(Wiring.CLIMB_ON))
-            {
-               //System.out.println("Up Part Button: " + upPart.debouncedValueDigital());
-               //System.out.println("Up Max Button: " + upMax.debouncedValueDigital());
-               //System.out.println("Down Button: " + down.debouncedValueDigital());
-
-               if (upPart.debouncedValueDigital())
-               {
-                   climb.goUpPartial(Wiring.CLIMB_UP_PART);
-               }
-
-               else if (upMax.debouncedValueDigital())
-               {
-                   climb.goUpMax(Wiring.CLIMB_UP_MAX);
-               }
-
-               else if (down.debouncedValueDigital())
-               {
-                   climb.goDownManual(Wiring.CLIMB_DOWN);
-               }
-
-               else if (autoClimb.debouncedValueDigital())
-               {
-                    if(!driverStationButtons.getDigital(Wiring.FORWARD_BACK))
-                    {
-                        climb.autoClimbPartial(Wiring.AUTO_CLIMB_FIRST);
-                    }
-                    else 
-                    {
-                        System.out.println("AutoClimb Button: " + autoClimb.debouncedValueDigital());
-                        climb.autoClimbMax(Wiring.AUTO_CLIMB);
-                    }
-               } 
-               else 
-               {
-                    System.out.println("Forward Backward: " + driverStationButtons.getDigital(Wiring.FORWARD_BACK));
-                    if (driverStationButtons.getDigital(Wiring.FORWARD_BACK))
-                    {
-                        climb.goBackward();
-                    }
-                    else
-                    {
-                        climb.goForward();
-                    }
-               }
-            }
-            else
-            {
-                climb.stop();
-            }
-
-        } catch (DriverStationEnhancedIO.EnhancedIOException ex) {
-            ex.printStackTrace();
-        }
-    }
-   
-    public boolean shouldAbort() {
-        try 
-        {
-            if(!isEnabled() || !driverStationButtons.getDigital(Wiring.CLIMB_ON) )
-            {
-                return true;
-            }
-            
-        }
-        catch (DriverStationEnhancedIO.EnhancedIOException ex) 
-        {
-            ex.printStackTrace();
-        }
-        return false;
-    }
+        cfgNormalMode(rightMotor); 
+    }    
 }
