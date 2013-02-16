@@ -32,11 +32,8 @@ public class Shooter
         }
         catch (CANTimeoutException ex)
         {
-            Object s = null;
             ex.printStackTrace();
-            if (s == "cool")
-                s = "cool";
-                
+          
         }
     }
     
