@@ -6,12 +6,14 @@ import edu.wpi.first.wpilibj.DriverStationEnhancedIO.EnhancedIOException;
 import edu.wpi.first.wpilibj.Solenoid;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.can.CANTimeoutException;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 public class ClimbingSystem
 {
     Solenoid up;
     Solenoid forward;
     Solenoid back;
+    Solenoid down;
     CANJaguar winch;
     DigitalInput home;
     DigitalInput part;
@@ -23,25 +25,31 @@ public class ClimbingSystem
     
     double typicalCurrent = 0;
  
-    final double thresh_hold = 11.0;
-    final double downspeed   =  0.25;
-    final double upspeed     = -0.5;
+    final double thresh_hold = 35.0;
+    final double downspeed   =  1.00;
+    final double downSpeedFast= 1.00;
+    final double upspeed     = -0.75;
     
-    public ClimbingSystem(RobotTemplate robo)
+    public ClimbingSystem(RobotTemplate robo)            
     {
         try 
         {
             up = new Solenoid(Wiring.CLIMB_SOLENOID_UP);
+            down = new Solenoid(Wiring.CLIMB_SOLENOID_DOWN);
             forward = new Solenoid(Wiring.CLIMBING_SOLENOID_FORWARD);
             back = new Solenoid(Wiring.CLIMBING_SOLENOID_BACKWARD);
             home = new DigitalInput(Wiring.CYLINDER_HOME);
             part = new DigitalInput(Wiring.CYLINDER_PART);
+            
             max = new DigitalInput(Wiring.CYLINDER_MAX);
             winch = new CANJaguar(Wiring.WINCH_MOTOR);
             winch.configMaxOutputVoltage(6.0);
+            forward.set(true);
+            back.set(false);
             this.robo = robo;
             time.start();
             typicalCurrent = 0;
+            
         } 
         catch (CANTimeoutException ex) 
         {
@@ -51,13 +59,13 @@ public class ClimbingSystem
     
     public void autoClimbPartial(int button)
     {
-       System.out.println("Auto CLimb Part");
+       //System.out.println("Auto CLimb Part");
        autoClimb(false, button);
     }
     
     public void autoClimbMax(int button)
     {
-        System.out.println("Auto CLimb Max");
+        //System.out.println("Auto CLimb Max");
         autoClimb(true, button);
     }
     
@@ -67,7 +75,7 @@ public class ClimbingSystem
         
         while(!robo.shouldAbort() && state != 5)
         {
-            System.out.println(state);
+            //System.out.println(state);
             switch(state)
             {
                 case 0:
@@ -108,7 +116,7 @@ public class ClimbingSystem
    
     public void goUpMax(int button)
     {         
-        System.out.println("Go Up Max");
+        //System.out.println("Go Up Max");
         double curTime = time.get();
         try
         {
@@ -119,6 +127,7 @@ public class ClimbingSystem
             }
 
             up.set(true);
+            down.set(false);
             winch.setX(upspeed);
 
                 while(true)
@@ -139,6 +148,7 @@ public class ClimbingSystem
 
                     if(!max.get())
                     {
+                        System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$ GOT TO MAX $$$$$$$$$$$$$$$$$$$$");
                         winch.setX(0.0);
                         break;
                     }  
@@ -152,7 +162,7 @@ public class ClimbingSystem
     
     public void goUpPartial(int button) 
     {
-        System.out.println("Go Up Part");
+        //System.out.println("Go Up Part");
         double curTime = time.get();
         try
         {
@@ -163,6 +173,7 @@ public class ClimbingSystem
             }
 
             up.set(true);
+            down.set(false);
             winch.setX(upspeed);
             
             while(true)
@@ -183,6 +194,7 @@ public class ClimbingSystem
 
                 if(!part.get())
                 {
+                    System.out.println("$$$$$$$$$$$$$$$$$$$$$$ HIT PART $$$$$$$$$$$$$$$$$$$$$$4");
                     winch.setX(0.0);
                     break;
                 }
@@ -202,7 +214,7 @@ public class ClimbingSystem
     
     public void goDownManual(int button)
     {
-        System.out.println("Going Down");
+        //System.out.println("Going Down");
         try
         {
             if(!home.get())
@@ -213,26 +225,47 @@ public class ClimbingSystem
             }
 
             up.set(true);
+            down.set(false);
             winch.setX(downspeed);
 
             while(true)
             {
+                SmartDashboard.putNumber("Current", winch.getOutputCurrent());
+                SmartDashboard.putNumber("Encoder Ticks", winch.getPosition());
+                if(!home.get())
+                {
+                    SmartDashboard.putBoolean("Home", true);
+                }
+                if(!part.get())
+                {
+                    SmartDashboard.putBoolean("Part", true);
+                }
+                if(!max.get())
+                {
+                    SmartDashboard.putBoolean("Max", true);
+                }
+                
                 if(robo.shouldAbort())
                 {
+                    
                     stop();
                     break;
                 }
                 if(!home.get())
                 {
-                    winch.setX(0.0);
+                    System.out.println("$$$$$$$$$$$$$$$$$$$$$ GOT HOME $$$$$$$$$$$$$$$$$$$$$$$$$$");
                     up.set(false);
+                    down.set(true);
+                    winch.setX(0.0);
                     break;
                 }
                 if(isHitBar())
                 {
+                    System.out.println("$$$$$$$$$$$$$$$$$$$$ HIT THE BAR $$$$$$$$$$$$$$$");
                     //**ATTENTION** adjust motor speed if needed to a higher speed
-                    winch.setX(.5);
+                    winch.setX(downSpeedFast);
                     up.set(false);
+                    down.set(true);
                 }
             }
         }
@@ -244,14 +277,14 @@ public class ClimbingSystem
     
     public void goForward()
     {
-        System.out.println("Forward");
+        //System.out.println("Forward");
         back.set(false);
         forward.set(true);
     }
     
     public void goBackward()
     {
-        System.out.println("Backward");
+        //System.out.println("Backward");
         forward.set(false);
         back.set(true);
     }
@@ -288,7 +321,8 @@ public class ClimbingSystem
     {
         try {
             up.set(false);
-            forward.set(false);
+            down.set(true);
+            forward.set(true);
             back.set(false);
             winch.setX(0.0);
         } catch (CANTimeoutException ex) {

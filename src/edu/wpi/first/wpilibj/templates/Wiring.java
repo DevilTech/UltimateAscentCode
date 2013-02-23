@@ -26,20 +26,21 @@ public class Wiring
     static public final int HOPPER_MOTOR                = 4;
  
     // solenoid
-    static public final int CLIMB_SOLENOID_UP           = 1;
-    static public final int CLIMBING_SOLENOID_FORWARD   = 2;
-    static public final int CLIMBING_SOLENOID_BACKWARD  = 3;
+    static public final int CLIMB_SOLENOID_UP           = 2;
+    static public final int CLIMB_SOLENOID_DOWN         = 4;
+    static public final int CLIMBING_SOLENOID_FORWARD   = 3;
+    static public final int CLIMBING_SOLENOID_BACKWARD  = 1;
 
     // Analog Digital Sidecar
     static public final int GYRO_ANALOG                 = 2;
     
     //Digital I/O Digital Sidecar
     static public final int HOPPER_MAGNET               = 2;
-    static public final int AUTONOMOUS_SWITCH_A         = 6;
-    static public final int AUTONOMOUS_SWITCH_B         = 7;
-    static public final int CYLINDER_HOME               = 3;
-    static public final int CYLINDER_PART               = 4;
-    static public final int CYLINDER_MAX                = 5;
+    static public final int AUTONOMOUS_SWITCH_A         = 10;
+    static public final int AUTONOMOUS_SWITCH_B         = 9;
+    static public final int CYLINDER_HOME               = 4;
+    static public final int CYLINDER_PART               = 5;
+    static public final int CYLINDER_MAX                = 6;
     
     // Joysticks
     static public final int WHEEL                       = 2;
@@ -48,7 +49,7 @@ public class Wiring
     
     // MISC
     static public final double TURN_TOLERANCE           = 0.75;
-    static public final double TURN_DELAY               = 1.0/16.0;
+    static public final double TURN_DELAY               = 1.0/32.0;
     static public final double P_SPEED                  = 0.76;
     static public final double I_SPEED                  = 0.046;
     static public final double D_SPEED                  = 0.0;
@@ -59,6 +60,7 @@ public class Wiring
     static public final int WHEELSPROCKET               = 42;
     static public final int DRIVESPROCKET               = 38;
     static public final int MAXJAGVOLTAGE               = 12;
+    static public final double RAMP_VOLTS_PER_SECOND    = 3.0;
     
     // wheel buttons
     static public final int WHEEL_X_BUTTON              = 1;
@@ -79,5 +81,6 @@ public class Wiring
     static public final int XBOX_B_BUTTON               = 2;
     static public final int XBOX_X_BUTTON               = 3;
     static public final int XBOX_Y_BUTTON               = 4;
+    static public final int XBOX_LEFT_BUMPER            = 5;
     static public final int XBOX_RIGHT_BUMPER           = 6;
 }

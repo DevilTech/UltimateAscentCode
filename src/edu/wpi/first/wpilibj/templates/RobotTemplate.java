@@ -18,6 +18,7 @@ public class RobotTemplate extends SimpleRobot
     //Shooter
     JoystickButton shootOn;
     JoystickButton shootOff;
+    JoystickButton fire;
     Shooter shooter;
     Hopper hopper;
     boolean shooting = false;
@@ -38,6 +39,7 @@ public class RobotTemplate extends SimpleRobot
         
     PIDController pid;
     Output out;
+    JoystickButton test;
 
     
     ErrorHandler errHandler = ErrorHandler.getErrorHandler();
@@ -55,7 +57,7 @@ public class RobotTemplate extends SimpleRobot
             leftMotor   = new CANJaguar(Wiring.LEFT_WHEEL);
             rightMotor  = new CANJaguar(Wiring.RIGHT_WHEEL);// JAG CHANGE
             drive       = new RobotDrive(leftMotor, rightMotor);
-            dthread     = new DriveThread(this, drive, stick);// JAG CHANGE
+            dthread     = new DriveThread(this, drive, stick, rightMotor, leftMotor);// JAG CHANGE
             
             //Climber Constructors
             upPart      = new JoystickButton(Wiring.CLIMB_UP_PART);
@@ -63,11 +65,14 @@ public class RobotTemplate extends SimpleRobot
             down        = new JoystickButton(Wiring.CLIMB_DOWN);
             autoClimb   = new JoystickButton(Wiring.AUTO_CLIMB);
             climb       = new ClimbingSystem(this);
-            comp        = new Compressor(1,1);
+            comp        = new Compressor(8,1);
+            comp.start();
+            climb.goDownManual(1); // **ATTENTION** take out at RIT in order to pass rules
             
             //Shooter Constructors
-            shootOn     = new JoystickButton(stick, Wiring.SHOOTER_MOTOR_ON);
-            shootOff    = new JoystickButton(stick, Wiring.SHOOTER_MOTOR_OFF);
+            shootOn     = new JoystickButton(stick, Wiring.XBOX_A_BUTTON);
+            shootOff    = new JoystickButton(stick, Wiring.XBOX_B_BUTTON);
+            fire        = new JoystickButton(stick, Wiring.XBOX_X_BUTTON);
             shooter     = new Shooter(Wiring.SHOOTER_MOTOR);
             hopper      = new Hopper(Wiring.HOPPER_MOTOR);
             
@@ -78,12 +83,10 @@ public class RobotTemplate extends SimpleRobot
             out         = new Output();
             pid         = new PIDController(Wiring.P, Wiring.I, Wiring.D, gyro, out);
             pid.setAbsoluteTolerance(1);
-            SmartDashboard.putNumber("Lower Servo Angle", 0.0);
-            SmartDashboard.putNumber("Higher Servo Angle", 0.0);
+            test = new JoystickButton(Wiring.XBOX_Y_BUTTON);
             SmartDashboard.putNumber("Shooter Motor Speed", 1.000);
-            SmartDashboard.putNumber("P", 0.0);
-            SmartDashboard.putNumber("I", 0.0);
-            SmartDashboard.putNumber("D", 0.0);
+            SmartDashboard.putBoolean("Ready To Shoot", false);
+
         } 
         catch (CANTimeoutException ex) 
         {
@@ -94,12 +97,31 @@ public class RobotTemplate extends SimpleRobot
     public void operatorControl()
     {
         (new Thread(dthread)).start();
-        
+        cfgNormalMode(leftMotor);
+        cfgNormalMode(rightMotor);
+        climb.goDownManual(Wiring.CLIMB_DOWN);
         while(isEnabled())
         {           
+            if(stick.getRawButton(Wiring.XBOX_Y_BUTTON))
+            {
+                try {
+                    climb.winch.setX(.75);
+                } catch (CANTimeoutException ex) {
+                    ex.printStackTrace();
+                }
+            }
+            else
+            {
+                try {
+                    climb.winch.setX(0.0);
+                } catch (CANTimeoutException ex) {
+                    ex.printStackTrace();
+                }
+            }
             errHandler.refresh();
             climbingCheck();
             shooterCheck();
+            Thread.yield();
         }
     }
     
@@ -128,7 +150,7 @@ public class RobotTemplate extends SimpleRobot
         }
 
         //semi automatic shooting system
-        if(stick.getRawButton(Wiring.TRIGGER) && shooting)
+        if(fire.debouncedValue() && shooting)
         {
             hopper.load();
         }    
@@ -139,7 +161,8 @@ public class RobotTemplate extends SimpleRobot
     {
         try {
             //climbing
-            System.out.println("Climb On: " + driverStationButtons.getDigital(Wiring.CLIMB_ON));
+            //System.out.println("Climb On: " + driverStationButtons.getDigital(Wiring.CLIMB_ON));
+            System.out.println("CLIMBING SENSORS: HOME- " + climb.home.get() + " PART- " + climb.part.get() + " MAX- " + climb.max.get());
             if (driverStationButtons.getDigital(Wiring.CLIMB_ON))
             {
                //System.out.println("Up Part Button: " + upPart.debouncedValueDigital());
@@ -169,13 +192,13 @@ public class RobotTemplate extends SimpleRobot
                     }
                     else 
                     {
-                        System.out.println("AutoClimb Button: " + autoClimb.debouncedValueDigital());
+                        //System.out.println("AutoClimb Button: " + autoClimb.debouncedValueDigital());
                         climb.autoClimbMax(Wiring.AUTO_CLIMB);
                     }
                } 
                else 
                {
-                    System.out.println("Forward Backward: " + driverStationButtons.getDigital(Wiring.FORWARD_BACK));
+                    //System.out.println("Forward Backward: " + driverStationButtons.getDigital(Wiring.FORWARD_BACK));
                     if (driverStationButtons.getDigital(Wiring.FORWARD_BACK))
                     {
                         climb.goBackward();
@@ -194,7 +217,7 @@ public class RobotTemplate extends SimpleRobot
         } 
         catch (DriverStationEnhancedIO.EnhancedIOException ex) 
         {
-            ex.printStackTrace();
+           // ex.printStackTrace(); **ATTENTION** FIX LATER, COMMENTED IN ORDER TO STOP THE PRINTS
         }
     }
    
@@ -414,6 +437,7 @@ public class RobotTemplate extends SimpleRobot
         
         cfgPosMode(leftMotor);
         cfgPosMode(rightMotor);
+        errHandler.error("Autonomous");
         
         //shoot 3 with 1s delay in between
 	while(isAutonomous())
@@ -442,4 +466,10 @@ public class RobotTemplate extends SimpleRobot
         cfgNormalMode(leftMotor);
         cfgNormalMode(rightMotor); 
     }    
+     
+     public void test()
+     {
+        climb.goDownManual(Wiring.CLIMB_DOWN);
+     }
+     
 }

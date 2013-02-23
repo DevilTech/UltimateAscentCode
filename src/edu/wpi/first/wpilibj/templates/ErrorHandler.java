@@ -32,8 +32,7 @@ public class ErrorHandler
     
     public void refresh()
     {
-        System.out.println("Got to refresh");
-        System.out.println( time.get());
+
         
         if (time.get() > 5) {      
             clear();
