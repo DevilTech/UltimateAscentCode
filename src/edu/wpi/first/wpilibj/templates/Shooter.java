@@ -12,6 +12,7 @@ public class Shooter
     boolean hasSeenMax = false;
     final double aCHigh = 25;
     final double aCLow  = 19;
+    boolean atMax;
     
     public Shooter(int port)
     {
@@ -28,19 +29,22 @@ public class Shooter
     
     public void shoot()
     {
+        System.out.println("Shooting");
         try 
         {
-            shoot.setX(SmartDashboard.getNumber("Shooter Motor Speed"));
-            SmartDashboard.putNumber("Shooter Motor Current", shoot.getOutputCurrent());
+            shoot.setX(1.0);
+
         }
         catch (CANTimeoutException ex)
         {
             ex.printStackTrace();
         }
-        try {
+        try 
+        {
             if(hasSeenMax && shoot.getOutputCurrent() < aCLow)
             {
                 SmartDashboard.putBoolean("Shooter Up To Speed", true);
+                atMax = true;
             }
             else if (shoot.getOutputCurrent() > aCHigh)
             {
@@ -62,6 +66,13 @@ public class Shooter
             ex.printStackTrace();
         }
         hasSeenMax = false;
+        atMax = false;
         SmartDashboard.putBoolean("Shooter Up To Speed", false);
+    }
+    public boolean atSpeed(){
+        if(!hasSeenMax){
+            atMax = false;
+        }
+        return atMax;
     }
 }

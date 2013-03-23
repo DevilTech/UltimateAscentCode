@@ -27,7 +27,7 @@ public class ErrorHandler
     {
         time.reset();
         clear();
-        SmartDashboard.putString("Error!", " " + err);
+        //SmartDashboard.putString("Error!", " " + err);
     }
     
     public void refresh()
@@ -41,6 +41,6 @@ public class ErrorHandler
     
     public void clear()
     {
-        SmartDashboard.putString("Error!", " ");
+        //SmartDashboard.putString("Error!", " ");
     }
 }

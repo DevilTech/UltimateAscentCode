@@ -28,6 +28,7 @@ public class DriveThread implements Runnable
 
     public void run()
     {
+        int neg = 0;
         JoystickButton leftTick = new JoystickButton(stick, Wiring.XBOX_LEFT_BUMPER);
         JoystickButton rightTick = new JoystickButton(stick, Wiring.XBOX_RIGHT_BUMPER);
         
@@ -54,8 +55,8 @@ public class DriveThread implements Runnable
             if(leftTick.debouncedValue())
             {
                 try {
-                    rightJag.setX(-.5);
-                    leftJag.setX(-.5);
+                    rightJag.setX(-.75);
+                    leftJag.setX(-.75);
                 } catch (CANTimeoutException ex) {
                     ex.printStackTrace();
                 }
@@ -65,8 +66,8 @@ public class DriveThread implements Runnable
             else if(rightTick.debouncedValue())
             {
                 try {
-                    rightJag.setX(.5);
-                    leftJag.setX(.5);
+                    rightJag.setX(.75);
+                    leftJag.setX(.75);
                 } catch (CANTimeoutException ex) {
                     ex.printStackTrace();
                 }
@@ -75,7 +76,16 @@ public class DriveThread implements Runnable
             }
             else
             {
-                drive.arcadeDrive(stick);  
+                if(stick.getZ() < 0)
+                {
+                    neg = -1;
+                }
+                else
+                {
+                    neg = 1;
+                    
+                }
+                drive.arcadeDrive(stick, true);
             }
             
         }

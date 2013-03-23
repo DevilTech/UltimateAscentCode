@@ -1,6 +1,7 @@
 package edu.wpi.first.wpilibj.templates;
 
 import edu.wpi.first.wpilibj.CANJaguar;
+import edu.wpi.first.wpilibj.Counter;
 import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj.DriverStationEnhancedIO.EnhancedIOException;
 import edu.wpi.first.wpilibj.Solenoid;
@@ -19,6 +20,7 @@ public class ClimbingSystem
     DigitalInput part;
     DigitalInput max;
     RobotTemplate robo;
+    Counter countPart;
     
     Timer time = new Timer();
     ErrorHandler errHandler = ErrorHandler.getErrorHandler();
@@ -28,8 +30,10 @@ public class ClimbingSystem
     final double thresh_hold = 35.0;
     final double downspeed   =  1.00;
     final double downSpeedFast= 1.00;
-    final double upspeed     = -0.75;
+    final double upspeed     = -0.85; //-.75
     
+    int countState = 0;
+    boolean passHome;
     public ClimbingSystem(RobotTemplate robo)            
     {
         try 
@@ -40,9 +44,12 @@ public class ClimbingSystem
             back = new Solenoid(Wiring.CLIMBING_SOLENOID_BACKWARD);
             home = new DigitalInput(Wiring.CYLINDER_HOME);
             part = new DigitalInput(Wiring.CYLINDER_PART);
-            
             max = new DigitalInput(Wiring.CYLINDER_MAX);
             winch = new CANJaguar(Wiring.WINCH_MOTOR);
+            countPart = new Counter(part);
+            countPart.setUpSourceEdge(true, false);
+            countPart.reset();
+            countPart.start();
             winch.configMaxOutputVoltage(6.0);
             forward.set(true);
             back.set(false);
@@ -117,6 +124,7 @@ public class ClimbingSystem
     public void goUpMax(int button)
     {         
         //System.out.println("Go Up Max");
+        
         double curTime = time.get();
         try
         {
@@ -129,9 +137,11 @@ public class ClimbingSystem
             up.set(true);
             down.set(false);
             winch.setX(upspeed);
+            passHome = false;
 
                 while(true)
                 {
+                    //SmartDashboard.putBoolean("AT HOME", !home.get());
                     if(robo.shouldAbort())
                     {
                         stop();
@@ -163,14 +173,17 @@ public class ClimbingSystem
     public void goUpPartial(int button) 
     {
         //System.out.println("Go Up Part");
+        
         double curTime = time.get();
         try
         {
-            if(home.get())
+            if(!passHome)
             {      
                 errHandler.error("NOT AT HOME, RETURN HOME BEFORE RAISING TO PART");
                 return;
             }
+            
+            countState = countPart.get();
 
             up.set(true);
             down.set(false);
@@ -178,6 +191,7 @@ public class ClimbingSystem
             
             while(true)
             {
+                //SmartDashboard.putBoolean("AT HOME", !home.get());
                 if(robo.shouldAbort())
                 {
                     stop();
@@ -192,7 +206,7 @@ public class ClimbingSystem
                     break;
                 }
 
-                if(!part.get())
+                if(countPart.get()!= countState)
                 {
                     System.out.println("$$$$$$$$$$$$$$$$$$$$$$ HIT PART $$$$$$$$$$$$$$$$$$$$$$4");
                     winch.setX(0.0);
@@ -215,6 +229,7 @@ public class ClimbingSystem
     public void goDownManual(int button)
     {
         //System.out.println("Going Down");
+        
         try
         {
             if(!home.get())
@@ -230,20 +245,21 @@ public class ClimbingSystem
 
             while(true)
             {
-                SmartDashboard.putNumber("Current", winch.getOutputCurrent());
-                SmartDashboard.putNumber("Encoder Ticks", winch.getPosition());
-                if(!home.get())
-                {
-                    SmartDashboard.putBoolean("Home", true);
-                }
-                if(!part.get())
-                {
-                    SmartDashboard.putBoolean("Part", true);
-                }
-                if(!max.get())
-                {
-                    SmartDashboard.putBoolean("Max", true);
-                }
+                //SmartDashboard.putBoolean("AT HOME", !home.get());
+                //SmartDashboard.putNumber("Current", winch.getOutputCurrent());
+                //SmartDashboard.putNumber("Encoder Ticks", winch.getPosition());
+//                if(!home.get())
+//                {
+//                    SmartDashboard.putBoolean("Home", true);
+//                }
+//                if(count.get() == 1)
+//                {
+//                    SmartDashboard.putBoolean("Part", true);
+//                }
+//                if(!max.get())
+//                {
+//                    SmartDashboard.putBoolean("Max", true);
+//                }
                 
                 if(robo.shouldAbort())
                 {
@@ -253,10 +269,12 @@ public class ClimbingSystem
                 }
                 if(!home.get())
                 {
+                    time.delay(1.0);
                     System.out.println("$$$$$$$$$$$$$$$$$$$$$ GOT HOME $$$$$$$$$$$$$$$$$$$$$$$$$$");
                     up.set(false);
                     down.set(true);
                     winch.setX(0.0);
+                    passHome = true;
                     break;
                 }
                 if(isHitBar())

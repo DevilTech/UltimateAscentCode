@@ -40,5 +40,6 @@ public class Hopper
         {
             error.error("KICKER TIME-OUT");
         }
+        time.stop();
     }
 }

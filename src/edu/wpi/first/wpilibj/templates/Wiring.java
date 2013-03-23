@@ -1,3 +1,4 @@
+
 package edu.wpi.first.wpilibj.templates;
 
 public class Wiring
@@ -49,7 +50,7 @@ public class Wiring
     
     // MISC
     static public final double TURN_TOLERANCE           = 0.75;
-    static public final double TURN_DELAY               = 1.0/32.0;
+    static public final double TURN_DELAY               = 1.0/16.0;
     static public final double P_SPEED                  = 0.76;
     static public final double I_SPEED                  = 0.046;
     static public final double D_SPEED                  = 0.0;

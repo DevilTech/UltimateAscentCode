@@ -18,6 +18,7 @@ public class RobotTemplate extends SimpleRobot
     //Shooter
     JoystickButton shootOn;
     JoystickButton shootOff;
+    
     JoystickButton fire;
     Shooter shooter;
     Hopper hopper;
@@ -84,8 +85,7 @@ public class RobotTemplate extends SimpleRobot
             pid         = new PIDController(Wiring.P, Wiring.I, Wiring.D, gyro, out);
             pid.setAbsoluteTolerance(1);
             test = new JoystickButton(Wiring.XBOX_Y_BUTTON);
-            SmartDashboard.putNumber("Shooter Motor Speed", 1.000);
-            SmartDashboard.putBoolean("Ready To Shoot", false);
+            SmartDashboard.putBoolean("Shooter Up To Speed", false);
 
         } 
         catch (CANTimeoutException ex) 
@@ -100,7 +100,7 @@ public class RobotTemplate extends SimpleRobot
         cfgNormalMode(leftMotor);
         cfgNormalMode(rightMotor);
         climb.goDownManual(Wiring.CLIMB_DOWN);
-        while(isEnabled())
+        while(isOperatorControl()&& isEnabled())
         {           
             if(stick.getRawButton(Wiring.XBOX_Y_BUTTON))
             {
@@ -160,14 +160,17 @@ public class RobotTemplate extends SimpleRobot
     public void climbingCheck()
     {
         try {
+            SmartDashboard.putBoolean("AT HOME", !climb.home.get());
             //climbing
             //System.out.println("Climb On: " + driverStationButtons.getDigital(Wiring.CLIMB_ON));
-            System.out.println("CLIMBING SENSORS: HOME- " + climb.home.get() + " PART- " + climb.part.get() + " MAX- " + climb.max.get());
+            //System.out.println("CLIMBING SENSORS: HOME- " + climb.home.get() + " PART- " + climb.part.get() + " MAX- " + climb.max.get());
+            //System.out.println("Partial Sensor: " + climb.part.get() + " Climbing Counter: " + climb.count.get());
             if (driverStationButtons.getDigital(Wiring.CLIMB_ON))
             {
                //System.out.println("Up Part Button: " + upPart.debouncedValueDigital());
                //System.out.println("Up Max Button: " + upMax.debouncedValueDigital());
                //System.out.println("Down Button: " + down.debouncedValueDigital());
+                
 
                if (upPart.debouncedValueDigital())
                {
@@ -241,11 +244,17 @@ public class RobotTemplate extends SimpleRobot
     
     public void disabled()
     {
+        
         try 
         {
             leftMotor.setX(0);
             rightMotor.setX(0);
             shooter.stop();   //  JAG CHANGE
+            /*while(isDisabled())
+            {
+                System.out.println("Partial Sensor: " + climb.part.get() + " Top Sensor: " + climb.max.get());
+               
+            }*/
         }
         catch (CANTimeoutException ex) 
         {
@@ -422,7 +431,7 @@ public class RobotTemplate extends SimpleRobot
         
         //Select the delay when shooting with a 3 position switch
         //left for 2sec, mid for 6sec, right for 11sec
-	if(autonomousA.get() && !autonomousB.get())
+	/*if(autonomousA.get() && !autonomousB.get())
 	{
 		preShotDelay = 2;
 	}
@@ -433,38 +442,62 @@ public class RobotTemplate extends SimpleRobot
 	if(!autonomousA.get() && autonomousB.get())
 	{
 		preShotDelay = 11;
-	}
+	}*/
         
-        cfgPosMode(leftMotor);
-        cfgPosMode(rightMotor);
+        
         errHandler.error("Autonomous");
+        boolean hasShotFirst = false;
         
         //shoot 3 with 1s delay in between
-	while(isAutonomous())
-	{
-            if(!frisbeesHaveBeenShot)
+        while(isAutonomous() && isEnabled())
+        {
+            while(!shooter.atSpeed())
             {
-		shooter.shoot();
-		Timer.delay(preShotDelay);
-		hopper.load();
-                Timer.delay(1);
-                hopper.load();
-                Timer.delay(1);
-                hopper.load();
-                frisbeesHaveBeenShot = true;
+                shooter.shoot();
             }
-            /*else
-             * {
-             * try {
-             * leftMotor.setX(1);
-             * rightMotor.setX(1);
-             * } catch (CANTimeoutException ex) {
-             * ex.printStackTrace();
-             * }
-             * }*/
-	}
-        cfgNormalMode(leftMotor);
-        cfgNormalMode(rightMotor); 
+            
+            if(shooter.atSpeed())
+            {
+                hopper.load();
+                shooter.shoot();
+            }
+            Timer.delay(1.5);
+
+            
+            
+          /*  if(isAutonomous()){
+            shooter.shoot();
+            }
+            else{
+                break;
+            }
+            Timer.delay(6);
+            
+            //Timer.delay(preShotDelay);
+            if(isAutonomous()){
+            hopper.load();
+            }
+            else{
+                break;
+            }
+            //System.out.println("#######################SHOT FIRST FRISBEE########################");
+            Timer.delay(1.5);
+            if(isAutonomous()){
+            hopper.load();
+            }
+            else{
+                break;
+            }
+            //System.out.println("#######################SHOT SECOND FRISBEE########################");
+            Timer.delay(1.5);
+            if(isAutonomous()){
+            hopper.load();
+            }else{
+                break;
+            }
+            //System.out.println("#######################SHOT FINAL FRISBEE########################");
+             */
+        }
     }    
      
      public void test()
